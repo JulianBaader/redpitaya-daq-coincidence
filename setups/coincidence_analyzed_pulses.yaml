@@ -96,9 +96,9 @@ Functions:
       num_process: 1
       RB_assign:
            RB_2: "observe"
-#   - Fkt_6:
-#       file_name: "modules/plot_histograms"
-#       fkt_name: "plot_histograms"
-#       num_process: 1
-#       RB_assign:
-#            RB_3: "read"  # pulse parameters
+   - Fkt_6:
+       file_name: "modules/plot_histograms"
+       fkt_name: "plot_histograms"
+       num_process: 1
+       RB_assign:
+            RB_3: "read"  # pulse parameters
