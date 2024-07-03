@@ -48,9 +48,16 @@ Functions:
       config_file: "config/spectrum_config.yaml"
 
   - Fkt_1:
+<<<<<<< HEAD:trash/setup_old.yaml
        ##  for simulation with rbPut
        file_name: "redP_mimoCoRB"
        fkt_name: "redP_to_rb"
+=======
+#       file_name: "redP_mimoCoRB"
+#       fkt_name: "redP_to_rb"
+       file_name: "modules/file_source"
+       fkt_name: "tar_parquet_source"
+>>>>>>> upstream/main:setup.yaml
        num_process: 1
        RB_assign:
            RB_1: "write"
