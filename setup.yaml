@@ -22,21 +22,21 @@
 RingBuffer:
   # define ring buffers
   - RB_1:
-      # raw input data buffer (from picoScope, file or simulation)
+      # raw input data buffer (from redPitaya)
       number_of_slots: 100
       channel_per_slot: 1000
       data_type:
           1: ['ch1', "int16"]
           2: ['ch2', "int16"]
   - RB_2:
-      # filter input data buffer (coincidence of peaks, clipping)
+      # filtered data buffer (coincidence of peaks, clipping)
       number_of_slots: 100
       channel_per_slot: 1000
       data_type:
           1: ['ch1', "int16"]
           2: ['ch2', "int16"]
   - RB_3:
-      # buffer with correct signature double pulse parameters
+      # analyzed data buffer (peak_height, time difference)
       number_of_slots: 100
       channel_per_slot: 1
       data_type:
@@ -81,6 +81,8 @@ Functions:
 
   - Fkt_4:
       file_name: "modules/exporters"
+      #fkt_name: "save_to_txt"
+      #fkt_name: "save_parquet"
       fkt_name: "drain"
       num_process: 1
       RB_assign:
