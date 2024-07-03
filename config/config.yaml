@@ -40,28 +40,13 @@ analyzer:
     - 'ch2'
 
 
-
-# dict for 
+# dict for tar_parquet_source
 tar_parquet_source:
   path: "measurements/coincidence/coincidence_small/"
   sleeptime: 0.10
   random: False
   number_of_samples: 1000
 
-
-# # dict for spectrum_filter, function find_peaks
-# find_peaks:
-#   # signal_characteristics: 256ns/sample, duration 50µs ( ~200 samples)
-#   sample_time_ns: *sample_time_ns
-#   analogue_offset: *analogue_offset
-#   number_of_samples: *number_of_samples
-#   pre_trigger_samples: *pre_trigger_samples
-#   peak_minimal_prominence: 200  # has to be positive and higher than avg. noise peaks to not cause havoc!
-#   trigger_channel: *trigger_channel
-#   peak_minimal_distance: 400  # minimal distance between two peaks in number of samples
-#   peak_minimal_width: 100  # in number of samples
-#   trigger_channel: *trigger_channel
-#   trigger_position_tolerance: 20  # in number of samples
 
 # dict for RedPitaya redPdaq
 redP_to_rb:
