@@ -36,3 +36,10 @@ def coincidence(peaks, coincidence_config, trigger_channel):
         if key != trigger_channel and abs(peaks[key][0] - peaks[trigger_channel][0]+coincidence_config['offset']) <= coincidence_config['width']:
             return peaks
     return None
+
+
+def range_filter(input_data, range_config):
+    """
+        bin unsischer mit der Implementierung. Pulse Height Analysis wäre vlt etwas übertrieben besonders, wenn die vermutlich im nächsten Schritt gleich kommt
+        aber nur über max zu gehen ist auch blöd weil dann der offset von 0 fehlt
+    """
