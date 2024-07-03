@@ -25,7 +25,7 @@ filter:
     width: 10 # in number of samples
   coincidence_config: 
     offset: 0 # in time bins
-    width: 10 # in time bins
+    width: 10000 # in time bins
 
 analyzer:
   pulse_height_pavel_config:
@@ -42,7 +42,7 @@ analyzer:
 
 # dict for tar_parquet_source
 tar_parquet_source:
-  path: "./measurements/coincidence/coincidence_small/"
+  path: "./measurements/coincidence/coincidence/"
   sleeptime: 0.10
   random: False
   number_of_samples: 1000

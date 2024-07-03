@@ -79,24 +79,24 @@ Functions:
            RB_2: "read"
            RB_3: "write"
 
-#  - Fkt_4:
-#      file_name: "modules/exporters"
-#      #fkt_name: "save_to_txt"
-#      #fkt_name: "save_parquet"
-#      fkt_name: "drain"
-#      num_process: 1
-#      RB_assign:
-#            RB_3: "read"
+  - Fkt_4:
+      file_name: "modules/exporters"
+      fkt_name: "save_to_txt"
+      #fkt_name: "save_parquet"
+      #fkt_name: "drain"
+      num_process: 1
+      RB_assign:
+            RB_3: "read"
 
 # --- the following functions are optioal 	   
 
-#  - Fkt_4:
-#      file_name: "modules/plot_waveform"
-#      fkt_name: "plot_waveform"
-#      num_process: 1
-#      RB_assign:
-#           RB_2: "observe"
-#   - Fkt_5:
+  - Fkt_5:
+      file_name: "modules/plot_waveform"
+      fkt_name: "plot_waveform"
+      num_process: 1
+      RB_assign:
+           RB_2: "observe"
+#   - Fkt_6:
 #       file_name: "modules/plot_histograms"
 #       fkt_name: "plot_histograms"
 #       num_process: 1
