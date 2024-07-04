@@ -43,8 +43,8 @@ def find_rightmost_value_before_index(arr, i, min_value):
 def pulse_height_pavel(input_data, pulse_height_pavel_config):
     peaks, peaks_prop = tag_peaks(input_data, pulse_height_pavel_config['peak_config'])
     for key in input_data.dtype.names:
-        if len(peaks[key])==0:
-            return None, None
+        #if len(peaks[key])==0:
+        #    return None, None
         heights = []
         start_positions = []
         for peak, left_ips in zip(peaks[key], peaks_prop[key]['left_ips']):
@@ -53,6 +53,7 @@ def pulse_height_pavel(input_data, pulse_height_pavel_config):
                 heights.append(int(input_data[key][peak] - input_data[key][start_position]))
                 start_positions.append(start_position)
             else:
+                print("Start Position failed")
                 return None, None
         peaks_prop[key]['height'] = heights
         peaks_prop[key]['start'] = start_positions

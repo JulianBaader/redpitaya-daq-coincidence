@@ -1,15 +1,15 @@
 # Dict with uid's as key and a nested dict with configuration variables
 general:
   runtime: 600  # desired runtime in seconds
-  runevents: &number_of_events 100000
+  runevents: &number_of_events 60000
   number_of_samples: &number_of_samples 1000
   analogue_offset: &analogue_offset 0
   # special settings for RedPitaya
-  decimation_index: &decimation 4 # decimation 0:1, i:2^(i+1) # data decimation factor, 0 is 8 ns/sample
+  decimation_index: &decimation 1 # decimation 0:1, i:2^(i+1) # data decimation factor, 0 is 8 ns/sample
   sample_time_ns: &sample_time_ns 256 #  for decimation 4
-  invert_channel1: &invert1 0 
+  invert_channel1: &invert1 1 
   invert_channel2: &invert2 0
-  trigger_level: &trigger_level 50
+  trigger_level: &trigger_level 500
   trigger_channel: &trigger_channel '1'
   trigger_direction: &trigger_direction "rising" # or "falling"
   pre_trigger_samples: &pre_trigger_samples 103 # 5%
@@ -42,7 +42,7 @@ analyzer:
 
 # dict for tar_parquet_source
 tar_parquet_source:
-  path: "./measurements/coincidence/coincidence/"
+  path: "./measurements/3_7/3_7_ch1_new2/"
   sleeptime: 0.10
   random: False
   number_of_samples: 1000
