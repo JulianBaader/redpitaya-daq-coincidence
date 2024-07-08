@@ -17,7 +17,6 @@ def plot_histograms(source_list=None, sink_list=None, observe_list=None, config_
     :param input: configuration dictionary
 
     """
-    print(source_list)
     histbuf = histogram_buffer(source_list, sink_list, observe_list, config_dict, **rb_info)
     histbuf()
 

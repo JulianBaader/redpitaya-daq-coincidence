@@ -77,7 +77,16 @@ Functions:
 
 
 
-# --- the following functions are optioal 	   
+   
+
+  # - Fkt_3:
+  #     file_name: "modules/plot_histograms"
+  #     fkt_name: "plot_histograms"
+  #     num_process: 1
+  #     RB_assign:
+  #           RB_2: "read"
+
+# --- the following functions are optioal 	
 
   - Fkt_4:
       file_name: "modules/plot_waveform"
@@ -86,9 +95,4 @@ Functions:
       RB_assign:
            RB_1: "observe"
 
-#  - Fkt_4:
-#      file_name: "modules/plot_histograms"
-#      fkt_name: "plot_histograms"
-#      num_process: 1
-#      RB_assign:
-#           RB_2: "read"
+

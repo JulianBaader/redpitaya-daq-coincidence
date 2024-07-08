@@ -112,5 +112,5 @@ plot_histograms:
   # define histograms 
   histograms:  
     #  name        min   max   nbins  ymax   name   lin/log
-    ch1_height:   [50., 3000.,   250, 20., "ph 1A", 0]
-    ch2_height:   [50., 3000.,   250, 20., "ph 1B", 0]
+    ch1_height:   [500., 4096.,   3596, 20., "ph 1A", 0]
+    ch2_height:   [500., 4096.,   3596, 20., "ph 1B", 0]
