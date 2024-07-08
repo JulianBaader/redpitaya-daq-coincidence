@@ -54,21 +54,21 @@ Functions:
       config_file: "config/config.yaml"
 
   - Fkt_1:
-       #file_name: "redP_mimoCoRB"
-       #fkt_name: "redP_to_rb"
-       file_name: "modules/file_source"
-       fkt_name: "tar_parquet_source"
-       num_process: 1
-       RB_assign:
-           RB_1: "write"
+      #file_name: "redP_mimoCoRB"
+      #fkt_name: "redP_to_rb"
+      file_name: "modules/file_source"
+      fkt_name: "tar_parquet_source"
+      num_process: 1
+      RB_assign:
+          RB_1: "write"
 
   - Fkt_2:
-       file_name: "modules/filter_client"
-       fkt_name: "filter"
-       num_process: 4
-       RB_assign:
-           RB_1: "read"
-           RB_2: "write"
+      file_name: "modules/filter_client"
+      fkt_name: "filter"
+      num_process: 4
+      RB_assign:
+          RB_1: "read"
+          RB_2: "write"
 
 
   - Fkt_3:
@@ -76,8 +76,8 @@ Functions:
       fkt_name: "analyzer"
       num_process: 1
       RB_assign:
-           RB_2: "read"
-           RB_3: "write"
+            RB_2: "read"
+            RB_3: "write"
 
   - Fkt_4:
       file_name: "modules/exporters"
@@ -96,9 +96,4 @@ Functions:
       num_process: 1
       RB_assign:
            RB_2: "observe"
-   - Fkt_6:
-       file_name: "modules/plot_histograms"
-       fkt_name: "plot_histograms"
-       num_process: 1
-       RB_assign:
-            RB_3: "read"  # pulse parameters
+
