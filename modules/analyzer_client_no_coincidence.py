@@ -73,9 +73,7 @@ def analyzer(source_list=None, sink_list=None, observe_list=None, config_dict=No
                     peak_data[0][key+'_height'] = peaks_prop[key]['height'][0]
         # this considers 
             #peak_data[0]['Delta_T'] =  peaks[list_of_channels[0]][0]-peaks[list_of_channels[1]][0]
-        else: 
-            print("No Peak Found")
-            return None
+        else: return None
         return [peak_data]
         
     
