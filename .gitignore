@@ -4747,8 +4747,6 @@ envs/share/man/man7/zmq_udp.7
 envs/share/man/man7/zmq_vmci.7
 envs/share/man/man7/zmq.7
 envs/ssl/certs/.keep
-measurements/3_7/analysis_coincidence.ipynb
-measurements/3_7/analysis_hist.ipynb
 measurements/3_7/3_7_ch1_bg/config.yaml
 measurements/3_7/3_7_ch1_bg/raw_pulses.yaml
 measurements/3_7/3_7_ch1_bg/spectrum.tar
