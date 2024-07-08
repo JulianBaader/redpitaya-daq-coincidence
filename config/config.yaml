@@ -29,11 +29,17 @@ filter:
 
 analyzer:
   pulse_height_pavel_config:
-    gradient_min_value: 0
+    baseline_mode: ## possible modes by which the baseline is calculated "gradient" "constant"
+      ch1: gradient
+      ch2: constant
+    baseline_value:
+      ch1: 0
+      ch2: 0
     peak_config:
       prominence: 200
       distance: 400
       width: 10
+    
 
   list_of_channels:
     - 'ch1'
@@ -42,8 +48,8 @@ analyzer:
 
 # dict for tar_parquet_source
 tar_parquet_source:
-  path: "./measurements/3_7/3_7_ch1_new2/"
-  sleeptime: 0.10
+  path: "./source/"
+  sleeptime: 0.010
   random: False
   number_of_samples: 1000
 

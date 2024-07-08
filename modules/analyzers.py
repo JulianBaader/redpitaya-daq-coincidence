@@ -46,17 +46,21 @@ def pulse_height_pavel(input_data, pulse_height_pavel_config):
         #if len(peaks[key])==0:
         #    return None, None
         heights = []
-        start_positions = []
+        #start_positions = []
         for peak, left_ips in zip(peaks[key], peaks_prop[key]['left_ips']):
-            start_position = find_rightmost_value_before_index(np.gradient(input_data[key]), int(left_ips), pulse_height_pavel_config['gradient_min_value'])
-            if start_position != -1:
-                heights.append(int(input_data[key][peak] - input_data[key][start_position]))
-                start_positions.append(start_position)
+            if pulse_height_pavel_config['baseline_mode'][key] == "gradient":
+                start_position = find_rightmost_value_before_index(np.gradient(input_data[key]), int(left_ips), pulse_height_pavel_config['baseline_value'][key])
+                if start_position != -1:
+                    heights.append(int(input_data[key][peak] - input_data[key][start_position]))
+                    #start_positions.append(start_position)
+                else: return None, None
+            elif pulse_height_pavel_config['baseline_mode'][key] == "constant":
+                #heights.append(np.max(input_data[key]))
+                heights.append(int(input_data[key][peak]-pulse_height_pavel_config['baseline_value'][key]))
             else:
-                print("Start Position failed")
-                return None, None
+                print("No configuration for pulse_height_pavel[baseline_mode] given")
         peaks_prop[key]['height'] = heights
-        peaks_prop[key]['start'] = start_positions
+        #peaks_prop[key]['start'] = start_positions
     
     return peaks, peaks_prop
         
