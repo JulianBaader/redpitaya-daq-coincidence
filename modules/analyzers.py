@@ -55,8 +55,9 @@ def pulse_height_pavel(input_data, pulse_height_pavel_config):
                     #start_positions.append(start_position)
                 else: return None, None
             elif pulse_height_pavel_config['baseline_mode'][key] == "constant":
-                #heights.append(np.max(input_data[key]))
                 heights.append(int(input_data[key][peak]-pulse_height_pavel_config['baseline_value'][key]))
+            elif pulse_height_pavel_config['baseline_mode'][key] == "testing_undershoot":
+                heights.append(np.min(input_data[key]))
             else:
                 print("No configuration for pulse_height_pavel[baseline_mode] given")
         peaks_prop[key]['height'] = heights

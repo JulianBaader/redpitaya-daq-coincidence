@@ -31,7 +31,7 @@ analyzer:
   pulse_height_pavel_config:
     baseline_mode: ## possible modes by which the baseline is calculated "gradient" "constant"
       ch1: gradient
-      ch2: constant
+      ch2: testing_undershoot
     baseline_value:
       ch1: 0
       ch2: 0
@@ -98,7 +98,7 @@ save_parquet:
 
 plot_waveform:
   title: "Coincidence waveform"
-  min_sleeptime: 0.5                # time to wait between graphics updates
+  min_sleeptime: 2                  # time to wait between graphics updates
   number_of_samples: *number_of_samples
   sample_time_ns: *sample_time_ns
   analogue_offset: *analogue_offset # analogue offset in V
