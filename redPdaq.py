@@ -415,7 +415,14 @@ class rpControl(QMainWindow, Ui_RPCONTROL):
                     self.log.print("failed to read oscilloscope data")
                     return 1
                 
-
+    def save_config(self):
+        print(self.ip_address)
+        
+        # Trigger Settings
+        print(self.trigger_level)
+        print(self.trigger_mode)
+        print(self.trigger_source)
+        print(self.trigger_slope)
     def run_oscDaq(self):
         """continuous fast data transfer from RedPitaya via mcpha oscilloscope
         """
@@ -1076,6 +1083,7 @@ class OscDAQ(QWidget, Ui_OscDisplay):
     def start_daq(self):
         """start oscilloscope in daq mode
         """
+        self.rpControl.save_config()
         if self.rpControl.idle:
             return
         # initialize daq statisics 
