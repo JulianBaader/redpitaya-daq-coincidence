@@ -66,9 +66,9 @@ Functions:
            RB_2: "write"
   - Fkt_3:
       file_name: "modules/exporters"
-      fkt_name: "save_to_txt"
+    #  fkt_name: "save_to_txt"
     #  fkt_name: "save_parquet"
-    #  fkt_name: "drain"
+      fkt_name: "drain"
       num_process: 1
       RB_assign:
             RB_2: "read"

@@ -58,6 +58,9 @@ def pulse_height_pavel(input_data, pulse_height_pavel_config):
                 heights.append(int(input_data[key][peak]-pulse_height_pavel_config['baseline_value'][key]))
             elif pulse_height_pavel_config['baseline_mode'][key] == "testing_undershoot":
                 heights.append(np.min(input_data[key]))
+            elif pulse_height_pavel_config['baseline_mode'][key] == "average_pulse":
+                # https://asd.gsfc.nasa.gov/archive/astroe/eng/pha.html
+                print("Average Pulse Height not yet Implemented")
             else:
                 print("No configuration for pulse_height_pavel[baseline_mode] given")
         peaks_prop[key]['height'] = heights
