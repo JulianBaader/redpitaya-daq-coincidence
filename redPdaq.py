@@ -415,14 +415,6 @@ class rpControl(QMainWindow, Ui_RPCONTROL):
                     self.log.print("failed to read oscilloscope data")
                     return 1
                 
-    def save_config(self):
-        print(self.ip_address)
-        
-        # Trigger Settings
-        print(self.trigger_level)
-        print(self.trigger_mode)
-        print(self.trigger_source)
-        print(self.trigger_slope)
     def run_oscDaq(self):
         """continuous fast data transfer from RedPitaya via mcpha oscilloscope
         """
@@ -1045,6 +1037,21 @@ class OscDAQ(QWidget, Ui_OscDisplay):
         self.rpControl.set_trg_level(self.trg_level)
         self.rpControl.set_osc_pre(self.pre)
         self.rpControl.set_osc_tot(self.l_tot)
+    
+    def save_config(self):
+        dfi = self.rpControl.rateValue.currentIndex()  # current decimation factor index
+        df = 4 if dfi == -1 else rpControl.rates[dfi]
+        f = open("redP_config.txt", "a")
+        f.write(f'''
+                ---Config of oscilloscope---
+                Trigger_Mode: {self.trg_mode}
+                Trigger_Source: {self.trg_source}
+                Trigger_Slope: {self.trg_slope}
+                Trigger_Level: {self.trg_level}
+                Decimation_Factor: {df}
+                ''')
+        f.close()
+
 
     def set_gui4start(self):
         self.startButton.setText("Start monitor")
@@ -1072,6 +1079,7 @@ class OscDAQ(QWidget, Ui_OscDisplay):
             return
         #
         self.setup_trigger()
+        #self.save_config()
         self.set_gui4stop()
         # 
         self.rpControl.mark_reset_osc()
@@ -1083,7 +1091,6 @@ class OscDAQ(QWidget, Ui_OscDisplay):
     def start_daq(self):
         """start oscilloscope in daq mode
         """
-        self.rpControl.save_config()
         if self.rpControl.idle:
             return
         # initialize daq statisics 
@@ -1096,6 +1103,7 @@ class OscDAQ(QWidget, Ui_OscDisplay):
         self.dT = 0.
         # set-up trigger and GUI Buttons
         self.setup_trigger()
+        self.save_config()
         self.set_gui4stop()
         # disable spectrum update
         if self.rpControl.hst1 is not None:
