@@ -44,6 +44,8 @@ import os
 import sys
 import time
 import struct
+import shutil
+import easygui
 
 from functools import partial
 import numpy as np
@@ -1060,6 +1062,8 @@ class OscDAQ(QWidget, Ui_OscDisplay):
         riseTime = self.rpControl.gen_riseValue
         genStart = self.rpControl.gen_autostart
         
+        if os.path.exists("redP_config.yaml"):
+            easygui.msgbox("redP_config.yaml already exists and will be overwritten", title="Warning")
         f = open("redP_config.yaml", "w")
 #         ip_address: {ip_address}
 # number_of_samples: {number_of_samples}
