@@ -31,6 +31,7 @@ import time
 import sys
 import redPdaq as rp
 from mimocorb.buffer_control import rbPut
+import shutil
 
 class redP_mimocorb():            
     """ Interface for redPoscdaq.py to the daq rinbuffer mimoCoRB 
@@ -94,6 +95,8 @@ if __name__ == "__main__":  # --------------------------------------
 
     print("\n*==* script " + sys.argv[0] + " running \n")
     daq = run_mimoDAQ(args.filename, verbose=args.verbose, debug=args.debug)
+    print(daq.directory_prefix)
     daq.setup()
     daq.run()
+    shutil.move("redP_config.yaml", daq.directory_prefix + "redP_config.yaml")
     print("\n*==* script " + sys.argv[0] + " finished " + time.asctime() + "\n")

@@ -233,7 +233,7 @@ class rpControl(QMainWindow, Ui_RPCONTROL):
         print("autostart", self.autostart)
 
         # generator defaults
-        self.gen_rateValue = 2000 if "genRate" not in self.confd \
+        self.gen_rateValue = 2000 if "gen" not in self.confd \
             else self.confd["genRate"]
         self.gen_poissonButton = True if "genPoisson" not in self.confd \
             else self.confd["genPoisson"]
@@ -1037,18 +1037,49 @@ class OscDAQ(QWidget, Ui_OscDisplay):
         self.rpControl.set_trg_level(self.trg_level)
         self.rpControl.set_osc_pre(self.pre)
         self.rpControl.set_osc_tot(self.l_tot)
-    
+        
     def save_config(self):
-        dfi = self.rpControl.rateValue.currentIndex()  # current decimation factor index
-        df = 4 if dfi == -1 else rpControl.rates[dfi]
-        f = open("redP_config.txt", "a")
+        #ip_address = self.rpControl.ip_address
+        #eventcount = self.rpControl.sample_size
+        #sample_time_ns = 
+        #number_of_samples =
+        #pre_trigger_samples = 
+        if self.trg_source: trigger_channel = 'ch2' 
+        else: trigger_channel = 'ch1'
+        trigger_level = self.trg_level
+        if self.trg_mode: trigger_mode = "auto" 
+        else: trigger_mode = "norm"
+        decimation_index = self.rpControl.rateValue.currentIndex()
+        invert_channel1 = self.rpControl.neg1Check.isChecked()
+        invert_channel2 = self.rpControl.neg2Check.isChecked()
+        startDAQ = self.rpControl.autostart
+        
+        genRate = self.rpControl.rateValue.currentText()
+        genPoisson = self.rpControl.gen_poissonButton
+        fallTime = self.rpControl.gen_fallValue
+        riseTime = self.rpControl.gen_riseValue
+        genStart = self.rpControl.gen_autostart
+        
+        f = open("redP_config.yaml", "w")
+#         ip_address: {ip_address}
+# number_of_samples: {number_of_samples}
+# pre_trigger_samples:   {pre_trigger_samples}
         f.write(f'''
-                ---Config of oscilloscope---
-                Trigger_Mode: {self.trg_mode}
-                Trigger_Source: {self.trg_source}
-                Trigger_Slope: {self.trg_slope}
-                Trigger_Level: {self.trg_level}
-                Decimation_Factor: {df}
+#Config of oscilloscope
+trigger_channel: {trigger_channel}
+trigger_level: {trigger_level}
+trigger_mode: {trigger_mode}
+decimation_index: {decimation_index}
+invert_channel1: {invert_channel1}
+invert_channel2: {invert_channel2}
+startDAQ: {startDAQ}
+
+#Generator Settings
+genRate: {genRate}
+# genPoisson: {genPoisson} Seems to be not working
+fallTime: {fallTime}
+riseTime: {riseTime}
+genStart: {genStart}
                 ''')
         f.close()
 
