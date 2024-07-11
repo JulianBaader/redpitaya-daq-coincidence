@@ -1,3 +1,4 @@
+from scipy import signal
 import numpy as np
 
 def clipping(input_data, clipping_config):
