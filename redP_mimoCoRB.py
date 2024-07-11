@@ -97,6 +97,5 @@ if __name__ == "__main__":  # --------------------------------------
     daq = run_mimoDAQ(args.filename, verbose=args.verbose, debug=args.debug)
     daq.setup()
     daq.run()
-    
-    shutil.move("redP_config.yaml", daq.directory_prefix + "redP_config.yaml")
+
     print("\n*==* script " + sys.argv[0] + " finished " + time.asctime() + "\n")
