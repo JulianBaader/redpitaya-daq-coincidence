@@ -96,4 +96,18 @@ if __name__ == "__main__":  # --------------------------------------
     daq = run_mimoDAQ(args.filename, verbose=args.verbose, debug=args.debug)
     daq.setup()
     daq.run()
+    # write run information to file
+    try:
+        N = daq.N_processed
+        T = daq.time_active
+    except AttributeError:
+        print("No run information available to write to file")
+    else:
+        file = open(daq.directory_prefix + "run_information.yaml", 'a')
+        file.write(f"""
+# Information of Run
+runevents: {daq.N_processed}
+runtime: {daq.time_active}""")
+        file.close()
+    
     print("\n*==* script " + sys.argv[0] + " finished " + time.asctime() + "\n")
