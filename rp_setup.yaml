@@ -36,7 +36,7 @@ Functions:
   # define functions and ringbuffer assignment
 
   - Fkt_main:
-      config_file: "config/config.yaml"
+      config_file: "config/coincidence_config.yaml"
 
     # Read Data from redP or File
   - Fkt_1:

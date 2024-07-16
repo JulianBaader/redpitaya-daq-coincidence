@@ -37,6 +37,7 @@ RingBuffer:
       data_type:
           1: ['ch1_height', "int16"]
           2: ['ch2_height', "int16"]
+          3: ['Delta_T', "int16"]
 
 
 # Hier fehlt ein Buffer aber ohne Delta T halt sadly
@@ -46,7 +47,7 @@ Functions:
   # define functions and ringbuffer assignment
 
   - Fkt_main:
-      config_file: "config/config.yaml"
+      config_file: "config/coincidence_config.yaml"
 
     # Read Data from redP or File
   - Fkt_1:
@@ -58,7 +59,7 @@ Functions:
        RB_assign:
            RB_1: "write"
   - Fkt_2:
-      file_name: "modules/analyzer_client_no_coincidence"
+      file_name: "modules/analyzer_client"
       fkt_name: "analyzer"
       num_process: 2
       RB_assign:
@@ -66,9 +67,9 @@ Functions:
            RB_2: "write"
   - Fkt_3:
       file_name: "modules/exporters"
-    #  fkt_name: "save_to_txt"
+      fkt_name: "save_to_txt"
     #  fkt_name: "save_parquet"
-      fkt_name: "drain"
+    #  fkt_name: "drain"
       num_process: 1
       RB_assign:
             RB_2: "read"
