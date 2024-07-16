@@ -1104,7 +1104,7 @@ class OscDAQ(QWidget, Ui_OscDisplay):
         if "directory_prefix" in self.rpControl.confd:
             fname = self.rpControl.confd["directory_prefix"] + "redP_config.yaml"
             if os.path.isfile(fname):
-                print(f"file {self.rpControl.confg['directory_prefix']} already existing")
+                print(f"file {self.rpControl.confd['directory_prefix']} already existing")
             # Otherwise ask user for file name
         else:
             if self.filename is not None:

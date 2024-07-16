@@ -69,9 +69,10 @@ def analyzer(source_list=None, sink_list=None, observe_list=None, config_dict=No
         peaks,peaks_prop = pulse_height_pavel(input_data, pulse_height_pavel_config)
         if peaks is not None:
             for key in input_data.dtype.names:
-                peak_data[0][key+'_height'] = peaks_prop[key]['height'][0]
-        # this considers 
-            peak_data[0]['Delta_T'] =  peaks[list_of_channels[0]][0]-peaks[list_of_channels[1]][0]
+                if len(peaks_prop[key]['height']) != 0:
+                    peak_data[0][key+'_height'] = peaks_prop[key]['height'][0]
+            if len(peaks[list_of_channels[0]]) != 0 and len(peaks[list_of_channels[1]]) != 0:    
+                peak_data[0]['Delta_T'] =  peaks[list_of_channels[0]][0]-peaks[list_of_channels[1]][0]
         else: return None
         return [peak_data]
         
