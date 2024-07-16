@@ -1,13 +1,13 @@
 # Dict with uid's as key and a nested dict with configuration variables
 general:
-  runtime: 600000  # desired runtime in seconds
+  runtime: 6000000  # desired runtime in seconds
   runevents: &number_of_events 60000
   number_of_samples: &number_of_samples 1000
   analogue_offset: &analogue_offset 0
   # special settings for RedPitaya
   decimation_index: &decimation 1 # decimation 0:1, i:2^(i+1) # data decimation factor, 0 is 8 ns/sample
   sample_time_ns: &sample_time_ns 256 #  for decimation 4
-  invert_channel1: &invert1 1 
+  invert_channel1: &invert1 0
   invert_channel2: &invert2 0
   trigger_level: &trigger_level 500
   trigger_channel: &trigger_channel '1'
@@ -25,13 +25,13 @@ filter:
     width: 10 # in number of samples
   coincidence_config: 
     offset: 0 # in time bins
-    width: 10000 # in time bins
+    width: 100 # in time bins
 
 analyzer:
   pulse_height_pavel_config:
     baseline_mode: ## possible modes by which the baseline is calculated "gradient" "constant"
       ch1: gradient
-      ch2: testing_undershoot
+      ch2: gradient
     baseline_value:
       ch1: 0
       ch2: 0
