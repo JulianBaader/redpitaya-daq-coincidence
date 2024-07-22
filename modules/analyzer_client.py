@@ -50,6 +50,7 @@ def analyzer(source_list=None, sink_list=None, observe_list=None, config_dict=No
 
     # Load configuration
     pulse_height_pavel_config = config_dict['pulse_height_pavel_config']
+    pulse_height_integral_config = config_dict['pulse_height_integral_config']
     list_of_channels = config_dict['list_of_channels']
 
     pulse_par_dtype = sink_list[-1]['dtype']
@@ -66,7 +67,8 @@ def analyzer(source_list=None, sink_list=None, observe_list=None, config_dict=No
 
         """
         peak_data= np.zeros( (1,), dtype=pulse_par_dtype)
-        peaks,peaks_prop = pulse_height_pavel(input_data, pulse_height_pavel_config)
+        #peaks,peaks_prop = pulse_height_pavel(input_data, pulse_height_pavel_config)
+        peaks,peaks_prop = pulse_height_integral(input_data, pulse_height_integral_config)
         if peaks is not None:
             for key in input_data.dtype.names:
                 if len(peaks_prop[key]['height']) != 0:
