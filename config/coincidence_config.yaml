@@ -13,6 +13,7 @@ general:
   trigger_channel: &trigger_channel '1'
   trigger_direction: &trigger_direction "rising" # or "falling"
   pre_trigger_samples: &pre_trigger_samples 103 # 5%
+  filename: &filename spectrum
 
 
 # dict for coincidence_filter, function filter_waveform
@@ -105,10 +106,10 @@ push_simul:
   random: true
 
 save_to_txt:
-  filename: "spectrum"
+  filename: *filename
 
 save_parquet:
-  filename: "spectrum"
+  filename: *filename
 
 plot_waveform:
   title: "Coincidence waveform"
@@ -128,3 +129,8 @@ plot_histograms:
     #  name        min   max   nbins  ymax   name   lin/log
     ch1_height:   [500., 4096.,   3596, 20., "ph 1A", 0]
     ch2_height:   [500., 4096.,   3596, 20., "ph 1B", 0]
+
+general_plotter:
+  filename: *filename
+  codefile: "modules/plot_codes.yaml"
+  title: "Plotter"
