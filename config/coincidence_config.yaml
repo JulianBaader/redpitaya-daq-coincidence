@@ -29,6 +29,14 @@ filter:
     width: 100 # in time bins
 
 analyzer:
+  mode: ''
+  peak_config:
+    prominence: 200
+    distance: 400
+    width: 10
+  
+
+analyzer:
   pulse_height_integral_config:
     start_stop_mode: ## possible modes by which the baseline is calculated "gradient" "constant" "left_ips_to_peak" "left_ips_to_right_ips" "left_gradient_to_peak"
       ch1: left_gradient_to_peak
@@ -134,3 +142,12 @@ general_plotter:
   filename: *filename
   codefile: "modules/plot_codes.yaml"
   title: "Plotter"
+  set_variables:
+    xpeak_boarders: [3100, 3200, 3900, 4000]
+    ypeak_boarders: [3100, 3200, 3900, 4000]
+    xrange: [3000, 4096]
+    yrange: [3000, 4096]
+    m1: 1
+    c1: 0
+    m2: 1
+    c2: 0

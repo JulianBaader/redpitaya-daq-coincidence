@@ -8,36 +8,40 @@ ADC-Spectrum2: |
   ax.set_ylabel('Counts')
 Energy-Spectrum1 : |
   def conv(adc):
-      return m*adc+c # convert ADC channels to keV
+    return m1*adc+c1 # convert ADC channels to keV
   ax.hist(conv(ch1_height), bins=conv(np.linspace(0, 4095, 4096)), histtype='step')  # use step as it's way faster
   ax.set_xlabel('Energy [keV]')
   ax.set_ylabel('Counts')
 Energy-Spectrum2 : |
   def conv(adc):
-      return m*adc+c # convert ADC channels to keV
+    return m2*adc+c2 # convert ADC channels to keV
   ax.hist(conv(ch2_height), bins=conv(np.linspace(0, 4095, 4096)), histtype='step')  # use step as it's way faster
   ax.set_xlabel('Energy [keV]')
   ax.set_ylabel('Counts')
 Coincidence Scatter: |
-  ax.xlim(3000,4096)
-  ax.ylim(3000,4096)
+  ax.set_xlim(xrange[0],xrange[1])
+  ax.set_ylim(yrange[0],yrange[1])
   ax.scatter(ch1_height, ch2_height, s=1)
   ax.set_xlabel('Pulseheight 1 [ADC channels]')
   ax.set_ylabel('Pulseheight 2 [ADC channels]')
 Coincidence Scatter with Peaks: |
-  xmin, xmax = 3000, 4096
-  ymin, ymax = 3000, 4096
-  x_peak_boarders = [xpeak1min, xpeak1max,xpeak2min, xpeak2max]
-  y_peak_boarders = [ypeak1min, ypeak1max,ypeak2min, ypeak2max]
-  
-  ax.xlim(xmin,xmax)
-  ax.ylim(ymin,ymax)
-
-  ax.text(0,0, )
-  plt.vlines(x_peak_boarders, ymin, ymax, colors='r', linestyles='dashed')
-  plt.hlines(y_peak_boarders, xmin, xmax, colors='r', linestyles='dashed')
-  ax.scatter(ch1_height, ch2_height, s=1)
+  x,y=ch1_height,ch2_height
+  ax.set_xlim(xrange[0],xrange[1])
+  ax.set_ylim(yrange[0],yrange[1])
+  ax.scatter(x, y, s=1)
   ax.set_xlabel('Pulseheight 1 [ADC channels]')
   ax.set_ylabel('Pulseheight 2 [ADC channels]')
+  ax.vlines(xpeak_boarders,yrange[0],yrange[1])
+  ax.hlines(ypeak_boarders,xrange[0],xrange[1])
+  for k in range(4):
+    i,j=2*(k//2),2*(k%2)
+    xstart,xstop=xpeak_boarders[i:i+2]
+    ystart,ystop=ypeak_boarders[j:j+2]
+    mask = (x>xstart) & (x<xstop) & (y>ystart) & (y<ystop)
+    ax.text(xpeak_boarders[i],ypeak_boarders[j+1],str(mask.sum()),color="tab:orange")
+
+
+  
+
 
 
