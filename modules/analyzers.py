@@ -72,6 +72,52 @@ def pulse_height_pavel(input_data, pulse_height_pavel_config):
         
 # <--- End Pulse height detection like Pavel
 
+def pha_jump(input_data, config):
+    # read config
+    peak_config = config['peak_config'] # peak_config can be copied from tag_peaks
+    gradient_min = config['gradient_min']
+    
+    peaks, peaks_prop = tag_peaks(input_data, peak_config)
+    for key in input_data.dtype.names:
+        jumps = []
+        for index in range(len(peaks[key])):
+            peak = peaks[key][index]
+            left_ips = peaks_prop[key]['left_ips'][index]
+            start_position = find_first_value(np.gradient(input_data[key]), int(left_ips), gradient_min,'left')
+            if start_position != -1:
+                jumps.append(int(input_data[key][peak] - input_data[key][start_position]))
+            else:
+                # ToDo Error Handeling peak löschen oder None zurückgeben
+                jumps.append(None)
+                peaks[key][index] = None
+                print("No start position found in pha_jump. If this occours often, consider changing the gradient_min value or the error handeling.")
+        peaks_prop[key]['jump'] = jumps
+    return peaks, peaks_prop
+
+def pha_integral(input_data, config):
+    # read config
+    peak_config = config['peak_config'] # peak_config can be copied from tag_peaks
+    
+    peaks, peaks_prop = tag_peaks(input_data, peak_config)
+    for key in input_data.dtype.names:
+        integrals = []
+        for peak, left_ips, right_ips in zip(peaks[key], peaks_prop[key]['left_ips'], peaks_prop[key]['right_ips']):
+            integrals.append(np.trapezoid(input_data[key][left_ips:right_ips]))
+        peaks_prop[key]['integral'] = integrals
+    return peaks, peaks_prop
+
+def pha_matched(input_data, config):
+    # read config
+    minimum_overlap = config['minimum_overlap']
+    file_name = config['file_name']
+    # read average pulse
+    average_pulse = np.loadtxt(file_name)
+    
+    # get maximum of convolution
+    max_conv = np.max(np.convolve(input_data, average_pulse, mode='valid'))
+    return max_conv if max_conv > minimum_overlap else None
+            
+
 
 def pulse_height_integral(input_data, pulse_height_integral_config):
     peaks, peaks_prop = tag_peaks(input_data, pulse_height_integral_config['peak_config'])

@@ -68,7 +68,7 @@ def analyzer(source_list=None, sink_list=None, observe_list=None, config_dict=No
         """
         peak_data= np.zeros( (1,), dtype=pulse_par_dtype)
         #peaks,peaks_prop = pulse_height_pavel(input_data, pulse_height_pavel_config)
-        peaks,peaks_prop = pulse_height_integral(input_data, pulse_height_integral_config)
+        peaks,peaks_prop = pulse_height_pavel(input_data, pulse_height_pavel_config)
         if peaks is not None:
             for key in input_data.dtype.names:
                 if len(peaks_prop[key]['height']) != 0:
