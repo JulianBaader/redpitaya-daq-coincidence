@@ -27,50 +27,62 @@ import pandas as pd
 import os, sys
 
 
+
+from filters import *
 from analyzers import *
 
 def analyzer(source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
+    """analyzer client for mimoCoRB: Find valid signal pulses in waveform data
+
+       Input: 
+
+        - wave form data from source buffer defined in source_list
+
+       Returns: 
+  
+         - None if filter not passed
+         - list of list(s) of pulse parameters, written to sinks defined in sink_list
+
+    """
+    
     if config_dict is None:
         raise ValueError("ERROR! Wrong configuration passed (in lifetime_modules: calculate_decay_time)!!")
 
-    mode = config_dict['mode']
-
+    # Load configuration
+    pulse_height_pavel_config = config_dict['pulse_height_pavel_config']
+    pulse_height_integral_config = config_dict['pulse_height_integral_config']
+    list_of_channels = config_dict['list_of_channels']
 
     pulse_par_dtype = sink_list[-1]['dtype']
     
-    def jump_filter(input_data):
-        peak_data = np.zeros((1,), dtype=pulse_par_dtype)
-        peaks, peaks_prop = pha_jump(input_data, config_dict)
-        for key in input_data.dtype.names:
-            if len(peaks_prop[key]['jump']) > 0:
-                peak_data[key + '_height'][0] = peaks_prop[key]['jump'][0]
-        return [peak_data]
-    
-    def int_filter(input_data):
-        peak_data = np.zeros((1,), dtype=pulse_par_dtype)
-        peaks, peaks_prop = pha_integral(input_data, config_dict)
-        for key in input_data.dtype.names:
-            if len(peaks_prop[key]['integral']) > 0:
-                peak_data[key + '_height'][0] = peaks_prop[key]['integral'][0]
-        return [peak_data]
-    
-    def matched_filter(input_data):
-        peak_data = np.zeros((1,), dtype=pulse_par_dtype)
-        conv = pha_matched(input_data, config_dict)
-        peak_data['ch1_height'][0] = conv
-        return [peak_data]
+    def filter_waveform(input_data):   
+        """
+        Filters pulses in the input data.
 
-    if mode == 'jump':
-        p_filter = rbTransfer(source_list=source_list, sink_list=sink_list, config_dict=config_dict,
-                        ufunc=jump_filter, **rb_info)
-    elif mode == 'integral':
-        p_filter = rbTransfer(source_list=source_list, sink_list=sink_list, config_dict=config_dict,
-                        ufunc=int_filter, **rb_info)
-    elif mode == 'matched':
-        p_filter = rbTransfer(source_list=source_list, sink_list=sink_list, config_dict=config_dict,
-                        ufunc=matched_filter, **rb_info)
-    else:
-        raise ValueError("ERROR! Wrong mode passed (in pulse_filter)!!")
+        Args:
+            input_data (list): The input data containing pulse information.
+
+        Returns:
+            list: The filtered input data.
+
+        """
+        peak_data= np.zeros( (1,), dtype=pulse_par_dtype)
+        #peaks,peaks_prop = pulse_height_pavel(input_data, pulse_height_pavel_config)
+        peaks,peaks_prop = pulse_height_pavel(input_data, pulse_height_pavel_config)
+        if peaks is not None:
+            for key in input_data.dtype.names:
+                if len(peaks_prop[key]['height']) != 0:
+                    peak_data[0][key+'_height'] = peaks_prop[key]['height'][0]
+            if 'Delta_T' in peak_data.dtype.names:
+                if len(peaks[list_of_channels[0]]) != 0 and len(peaks[list_of_channels[1]]) != 0:    
+                    peak_data[0]['Delta_T'] =  peaks[list_of_channels[0]][0]-peaks[list_of_channels[1]][0]
+        else: return None
+        return [peak_data]
+        
+    
+
+    p_filter = rbTransfer(source_list=source_list, sink_list=sink_list, config_dict=config_dict,
+                        ufunc=filter_waveform, **rb_info)
     p_filter()
 
 if __name__ == "__main__":

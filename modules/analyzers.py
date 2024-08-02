@@ -102,11 +102,12 @@ def pha_integral(input_data, config):
     for key in input_data.dtype.names:
         integrals = []
         for peak, left_ips, right_ips in zip(peaks[key], peaks_prop[key]['left_ips'], peaks_prop[key]['right_ips']):
-            integrals.append(np.trapezoid(input_data[key][left_ips:right_ips]))
+            integrals.append(np.trapezoid(input_data[key][int(left_ips):int(right_ips)]))
         peaks_prop[key]['integral'] = integrals
     return peaks, peaks_prop
 
 def pha_matched(input_data, config):
+    # Doesnt work for multiple channels
     # read config
     minimum_overlap = config['minimum_overlap']
     file_name = config['file_name']
@@ -114,7 +115,7 @@ def pha_matched(input_data, config):
     average_pulse = np.loadtxt(file_name)
     
     # get maximum of convolution
-    max_conv = np.max(np.convolve(input_data, average_pulse, mode='valid'))
+    max_conv = np.max(np.convolve(input_data['ch1'], average_pulse, mode='valid'))
     return max_conv if max_conv > minimum_overlap else None
             
 

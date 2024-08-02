@@ -28,38 +28,18 @@ filter:
     offset: 0 # in time bins
     width: 100 # in time bins
 
+  
+
 analyzer:
-  mode: ''
+  mode: 'jump'
   peak_config:
     prominence: 200
     distance: 400
     width: 10
-  
+  gradient_min: 0
+  minimum_overlap: 500
+  file_name: 'source/avg_pulse.txt'
 
-analyzer:
-  pulse_height_integral_config:
-    start_stop_mode: ## possible modes by which the baseline is calculated "gradient" "constant" "left_ips_to_peak" "left_ips_to_right_ips" "left_gradient_to_peak"
-      ch1: left_gradient_to_peak
-      ch2: gradient
-    baseline_value:
-      ch1: 0
-      ch2: 0
-    peak_config:
-      prominence: 200
-      distance: 400
-      width: 10
-  pulse_height_pavel_config:
-    baseline_mode: ## possible modes by which the baseline is calculated "gradient" "constant"
-      ch1: gradient
-      ch2: gradient
-    baseline_value:
-      ch1: 0
-      ch2: 0
-    peak_config:
-      prominence: 200
-      distance: 400
-      width: 10
-    
 
   list_of_channels:
     - 'ch1'
@@ -88,7 +68,7 @@ redP_to_rb:
   decimation_index: *decimation
   invert_channel1: *invert1
   invert_channel2: *invert2
-  startDAQ: true  # start in DAQ mode
+  startDAQ: false  # start in DAQ mode
   fallTime: 1
   genRate: 100
   genStart: True
