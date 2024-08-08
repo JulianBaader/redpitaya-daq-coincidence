@@ -66,7 +66,7 @@ class rpCommunication:
         # oscilloscope buffer
         self.osc_buffer = np.zeros(2 * self.total_samples, np.int16)
         self.osc_buffer_view = self.osc_buffer.view(np.uint8)
-        self.NUMBER_OF_BYTES_TO_READ = self.osc_buffer_view.size
+        self.SIZE = self.osc_buffer_view.size
         
         # daq
         self.daq_counter = 0
@@ -81,37 +81,31 @@ class rpCommunication:
         
         
         self.setup_general()
-        self.setup_oscilloscope
+        self.setup_oscilloscope()
         self.setup_generator() #TODO test if überhaupt gewünscht
-        self.start_first_osc()
+        
+        #self.start_first_osc()
 
         
-        self.main_loop()
+        self.main()
         
         
     def command(self, code, number, value):
         self.socket.sendall(struct.pack("<Q", code << 56 | number << 52 | (int(value) & 0xFFFFFFFFFFFFF)))
         
             
-    def read_oscilloscope(self):
-        buffer = np.zeros(2 * self.total_samples, np.int16)
-        view = buffer.view(np.uint8)
-        bytes_received = 0
-        while bytes_received < self.NUMBER_OF_BYTES_TO_READ:
-            
-            print(bytes_received)
-        return buffer
+
     
-    def main_loop(self):
-        while True:
-            self.command(31,0 ,1)
-            osc = self.read_oscilloscope()
-            plt.plot(osc[0::2])
-            plt.show()
-    
-    def start_first_osc(self):
+    def main(self):
         self.command(2, 0, 0)
         self.command(19, 0, 0)
+
+        time.sleep(5)
+        self.command(20, 0, 0)
+        data = self.socket.recv(self.SIZE)
+        view = np.frombuffer(data, np.uint8)
+        real = view.view(np.int16)
+        print(real)
         
         
         
