@@ -5,6 +5,8 @@ import time
 import socket
 import matplotlib.pyplot as plt
 
+from mimocorb.buffer_control import rbPut
+
 command_dictionary = {
     0: "reset histogram",
     1: "reset timer",
@@ -57,22 +59,30 @@ for i in range(16):  # initialize with delta-functions
     generator_array[(i + 1) * 256 - 1] = 1
 
         
-class rpCommunication:
-    def __init__(self ,config_dict = {}):
+class rpControll:
+    def __init__(self ,config_dict = {}, callback = None):
         self.load_config_from_dict(config_dict)
         self.check_config()
         
+        if callback is not None:
+            self.callback = callback
+        else:
+            self.callback = self.standard_callback
+            
 
         # oscilloscope buffer
         self.osc_buffer = np.zeros(2 * self.total_samples, np.int16)
-        self.osc_buffer_view = self.osc_buffer.view(np.uint8)
-        self.SIZE = self.osc_buffer_view.size
+        self.osc_view = self.osc_buffer.view(np.uint8)
+        self.OSC_SIZE = self.osc_view.size
+        
+        # status buffer
+        self.status_buffer = np.zeros(9, np.uint32)
+        self.status_view = self.status_buffer.view(np.uint8)
+        self.STATUS_SIZE = self.status_view.size
         
         # daq
-        self.daq_counter = 0
-        self.total_daq = 0
-        self.min_daq_counter = 100
-        self.daq_count_step = 1000
+        self.daq_step = 1000
+        self.daq_runs = 100
         
         # socket
         self.socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
@@ -81,36 +91,57 @@ class rpCommunication:
         
         
         self.setup_general()
-        self.setup_oscilloscope()
         self.setup_generator() #TODO test if überhaupt gewünscht
+        self.setup_oscilloscope()
         
-        #self.start_first_osc()
+        print("Setup done, starting Osci")
+        self.start_first_osc()
 
         
-        self.main()
+        self.main_loop()
         
         
     def command(self, code, number, value):
         self.socket.sendall(struct.pack("<Q", code << 56 | number << 52 | (int(value) & 0xFFFFFFFFFFFFF)))
         
-            
+    def recv_osc(self):
+        data = bytearray()
+        while len(data) < self.OSC_SIZE:
+            data += self.socket.recv(self.OSC_SIZE - len(data))
+        return data
 
     
-    def main(self):
+    def main_loop(self):
+        while self.daq_runs > 0:
+            self.command(31, 0, self.daq_step)
+            for i in range(self.daq_step):
+                self.osc_view[:] = np.frombuffer(self.recv_osc(), np.uint8)
+                self.callback([self.osc_buffer[0::2], self.osc_buffer[1::2]])
+            self.daq_runs -= 1
+        
+
+    def start_first_osc(self):
         self.command(2, 0, 0)
         self.command(19, 0, 0)
-
-        time.sleep(5)
-        self.command(20, 0, 0)
-        data = self.socket.recv(self.SIZE)
-        view = np.frombuffer(data, np.uint8)
-        real = view.view(np.int16)
-        print(real)
+        # while not self.test_for_trigger():
+        #     time.sleep(1)
+        #     pass
         
+    def recv_status(self):
+        data = bytearray()
+        while len(data) < self.STATUS_SIZE:
+            data += self.socket.recv(self.STATUS_SIZE - len(data))
+        return data
+    
+    def test_for_trigger(self):
+        self.command(11, 0, 0)
+        self.status_view = np.frombuffer(self.recv_status(), np.uint8)
+        print(self.status_buffer)
+        return self.status_buffer[8] % 2 == 1
         
-        
-
-                
+    
+    def standard_callback(self, data):
+        print(data)
 
             
             
@@ -122,22 +153,22 @@ class rpCommunication:
         self.command(5, 1, int(self.ch2_negated))
             
     def setup_oscilloscope(self):
+        self.command(15, 0, TRIGGER_MODES[self.trigger_mode])
         self.command(13, 0, TRIGGER_SOURCES[self.trigger_source])
         self.command(14, 0, TRIGGER_SLOPES[self.trigger_slope])
-        self.command(15, 0, TRIGGER_MODES[self.trigger_mode])
         self.command(16, 0, self.trigger_level)
         self.command(17, 0, self.pretrigger_samples)
         self.command(18, 0, self.total_samples)
             
     def setup_generator(self):
-        self.command(30, 0, 0) # stop generator
-        self.command(3, 0, 0) # reset generator
-        for value in np.arange(GENERATOR_BINS, dtype=np.uint64) << 32 | self.spectrum:
-            self.command(28, 0, value)
+        #self.command(30, 0, 0) # stop generator
+        #self.command(3, 0, 0) # reset generator
         self.command(21, 0, self.fall_time)
         self.command(22, 0, self.rise_time)
         self.command(25, 0, self.pulse_rate)
         self.command(26, 0, DISTRIBUTIONS[self.distribution])
+        for value in np.arange(GENERATOR_BINS, dtype=np.uint64) << 32 | self.spectrum:
+            self.command(28, 0, value)
         self.command(29, 0, 0) # start generator
         
     # <- Functions for setting up the RedPitaya
@@ -192,11 +223,65 @@ class rpCommunication:
         
 
 
+class rp_mimocorb:
+    """Interface for rpControll to the daq rinbuffer mimoCoRB"""
+
+    def __init__(self, source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
+        # initialize mimoCoRB interface
+        self.rb_exporter = rbPut(config_dict=config_dict, sink_list=sink_list, **rb_info)
+        self.number_of_channels = len(self.rb_exporter.sink.dtype)
+        self.events_required = 100000 if "eventcount" not in config_dict else config_dict["eventcount"]
+
+        self.event_count = 0
+        self.active = True
+
+    def __call__(self, data):
+        """function called by redPoscdaq"""
+        if (self.events_required == 0 or self.event_count < self.events_required) and self.active:
+            # deliver pulse data and no metadata
+            self.active = self.rb_exporter(data, None)  # send data
+            self.event_count += 1
+        else:
+            self.active = self.rb_exporter(None, None)  # send None when done
+            print("redPoscdaq exiting")
+            sys.exit()
+            
+def rp_to_rb(source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
+    """Main function,
+    executed as a multiprocessing Process, to pass data from the RedPitaya to a mimoCoRB buffer
+
+    :param config_dict: configuration dictionary
+      - events_required: number of events to be taken
+      - number_of_samples, sample_time_ns, pretrigger_samples and analogue_offset
+      - decimation index, invert flags, trigger mode and trigger direction for RedPitaya
+    """
+
+    # initialize mimocorb class
+    rb_source = rp_mimocorb(config_dict=config_dict, sink_list=sink_list, **rb_info)
+    rpControll(config_dict=config_dict, callback=rb_source)
 
 
+if __name__ == "__main__":  # --------------------------------------
+    # run mimoCoRB data acquisition suite
+    # the code below is idenical to the mimoCoRB script run_daq.py
+    import argparse
+    import sys
+    import time
+    from mimocorb.buffer_control import run_mimoDAQ
 
-if __name__ == "__main__":
-    com = rpCommunication()
+    # define command line arguments ...
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("filename", nargs="?", default="demo_setup.yaml", help="configuration file")
+    parser.add_argument("-v", "--verbose", type=int, default=2, help="verbosity level (2)")
+    parser.add_argument("-d", "--debug", action="store_true", help="switch on debug mode (False)")
+    # ... and parse command line input
+    args = parser.parse_args()
+
+    print("\n*==* script " + sys.argv[0] + " running \n")
+    daq = run_mimoDAQ(args.filename, verbose=args.verbose, debug=args.debug)
+    daq.setup()
+    daq.run()
+    print("\n*==* script " + sys.argv[0] + " finished " + time.asctime() + "\n")
 
 
 
