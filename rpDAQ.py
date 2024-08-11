@@ -81,8 +81,7 @@ class rpControll:
         self.STATUS_SIZE = self.status_view.size
         
         # daq
-        self.daq_step = 1000
-        self.daq_runs = 100
+       
         
         # socket
         self.socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
@@ -107,18 +106,38 @@ class rpControll:
     def recv_osc(self):
         data = bytearray()
         while len(data) < self.OSC_SIZE:
-            data += self.socket.recv(self.OSC_SIZE - len(data))
-        return data
-
-    
-    def main_loop(self):
-        while self.daq_runs > 0:
-            self.command(31, 0, self.daq_step)
-            for i in range(self.daq_step):
-                self.osc_view[:] = np.frombuffer(self.recv_osc(), np.uint8)
-                self.callback([self.osc_buffer[0::2], self.osc_buffer[1::2]])
-            self.daq_runs -= 1
+            data += self.socket.recv(self.OSC_SIZE - len(data)) #TODO recv_into
+        self.osc_view[:] = np.frombuffer(data, np.uint8)
+        self.callback([self.osc_buffer[0::2], self.osc_buffer[1::2]]) 
         
+    
+    def main_loop(self): #TODO optimize
+        start = time.time()
+        while self.total_events > 0:
+            val = min(self.events_per_loop, self.total_events)
+            self.command(31, 0, val)
+            for i in range(val):
+                self.recv_osc()
+            self.total_events -= val
+        stop = time.time()
+        rate = self.events_per_loop / (stop - start)
+        print("Rate: " + str(rate) + " Hz")
+        
+    def drain_daq(self):
+        self.command(32, 0, 0)
+        try:
+            while True:
+                self.socket.recv(1) #TODO ist das die beste Taktik?
+        except socket.timeout:
+            pass
+        
+    def __del__(self): #TODO implement on server side
+        self.drain_daq()
+        self.socket.close()
+        
+        
+        
+ 
 
     def start_first_osc(self):
         self.command(2, 0, 0)
@@ -182,6 +201,8 @@ class rpControll:
         self.sample_rate = config_dict["sample_rate"] if "sample_rate" in config_dict else 4
         self.ch1_negated = config_dict["ch1_negated"] if "ch1_negated" in config_dict else False
         self.ch2_negated = config_dict["ch2_negated"] if "ch2_negated" in config_dict else False
+        self.total_events = config_dict["total_events"] if "total_events" in config_dict else 10000
+        self.events_per_loop = config_dict["events_per_loop"] if "events_per_loop" in config_dict else 1000
         
         # oscilloscope configuration
         self.trigger_source = config_dict["trigger_source"] if "trigger_source" in config_dict else 1
@@ -194,7 +215,7 @@ class rpControll:
         # generator configuration
         self.fall_time = config_dict["fall_time"] if "fall_time" in config_dict else 10
         self.rise_time = config_dict["rise_time"] if "rise_time" in config_dict else 50
-        self.pulse_rate = config_dict["pulse_rate"] if "pulse_rate" in config_dict else 1000
+        self.pulse_rate = config_dict["pulse_rate"] if "pulse_rate" in config_dict else 2000
         self.distribution = config_dict["distribution"] if "distribution" in config_dict else 'poisson'
         self.spectrum = config_dict["spectrum"] if "spectrum" in config_dict else generator_array #TODO das ist nicht so schön
         self.start_generator = config_dict["start_generator"] if "start_generator" in config_dict else True
@@ -217,6 +238,10 @@ class rpControll:
             raise ValueError(str(self.total_samples) + " is not a valid number of total samples. Must be less than " + str(MAXIMUM_SAMPLES))
         if self.distribution not in DISTRIBUTIONS:
             raise ValueError(str(self.distribution) + " is not a valid distribution. Must be in " + str(DISTRIBUTIONS))
+        if self.total_events < 0:
+            raise ValueError("Invalid number of events")
+        if self.events_per_loop < 0:
+            raise ValueError("Invalid number of events per loop")
         
     # <- Functions for reading the config dict
     
