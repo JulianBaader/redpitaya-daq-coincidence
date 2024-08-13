@@ -5,7 +5,7 @@ import time
 import socket
 import matplotlib.pyplot as plt
 
-from mimocorb.buffer_control import rbPut
+
 
 command_dictionary = {
     0: "reset histogram",
@@ -81,7 +81,7 @@ class rpControll:
         self.STATUS_SIZE = self.status_view.size
         
         # daq
-       
+
         
         # socket
         self.socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
@@ -96,32 +96,57 @@ class rpControll:
         print("Setup done, starting Osci")
         self.start_first_osc()
 
-        
-        self.main_loop()
+        self.test_rates()
+        #self.main_loop()
         
         
     def command(self, code, number, value):
-        self.socket.sendall(struct.pack("<Q", code << 56 | number << 52 | (int(value) & 0xFFFFFFFFFFFFF)))
+        self.socket.sendall(struct.pacrbPutk("<Q", code << 56 | number << 52 | (int(value) & 0xFFFFFFFFFFFFF)))
         
     def recv_osc(self):
         data = bytearray()
         while len(data) < self.OSC_SIZE:
             data += self.socket.recv(self.OSC_SIZE - len(data)) #TODO recv_into
         self.osc_view[:] = np.frombuffer(data, np.uint8)
-        self.callback([self.osc_buffer[0::2], self.osc_buffer[1::2]]) 
+        self.callback([self.osc_buffer[0::2], self.osc_buffer[1::2]])
+        
+    def recv_osc_into_buffer(self, buffer):
+        pass 
+        
+    def test_rates(self):
+        input_rates = [r for r in range(100,10001,100)]
+        output_rates = []
+        ratio = []
+        for rate in input_rates:
+            self.command(25, 0, rate)
+            time.sleep(1)
+            out = self.main_loop()
+            output_rates.append(out)
+            print("Input rate: " + str(rate) + " Hz, Output rate: " + str(out) + " Hz" + ", Ratio: " + str(out / rate))
+            ratio.append(out / rate)
+        np.save("output_rates.npy", output_rates)
+        np.save("input_rates.npy", input_rates)
+        np.save("ratio.npy", ratio)
+        plt.plot(input_rates, ratio)
+        plt.show()
+        plt.plot(input_rates, output_rates)
+        plt.show()
+    
+    
         
     
     def main_loop(self): #TODO optimize
         start = time.time()
-        while self.total_events > 0:
-            val = min(self.events_per_loop, self.total_events)
+        event_counter = self.total_events
+        while event_counter > 0:
+            val = min(self.events_per_loop, event_counter)
             self.command(31, 0, val)
             for i in range(val):
                 self.recv_osc()
-            self.total_events -= val
+            event_counter -= val
         stop = time.time()
-        rate = self.events_per_loop / (stop - start)
-        print("Rate: " + str(rate) + " Hz")
+        rate = self.total_events / (stop - start)
+        return rate
         
     def drain_daq(self):
         self.command(32, 0, 0)
@@ -201,7 +226,7 @@ class rpControll:
         self.sample_rate = config_dict["sample_rate"] if "sample_rate" in config_dict else 4
         self.ch1_negated = config_dict["ch1_negated"] if "ch1_negated" in config_dict else False
         self.ch2_negated = config_dict["ch2_negated"] if "ch2_negated" in config_dict else False
-        self.total_events = config_dict["total_events"] if "total_events" in config_dict else 10000
+        self.total_events = config_dict["total_events"] if "total_events" in config_dict else 100000
         self.events_per_loop = config_dict["events_per_loop"] if "events_per_loop" in config_dict else 1000
         
         # oscilloscope configuration
@@ -248,65 +273,69 @@ class rpControll:
         
 
 
-class rp_mimocorb:
-    """Interface for rpControll to the daq rinbuffer mimoCoRB"""
+# class rp_mimocorb:
+#     """Interface for rpControll to the daq rinbuffer mimoCoRB"""
 
-    def __init__(self, source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
-        # initialize mimoCoRB interface
-        self.rb_exporter = rbPut(config_dict=config_dict, sink_list=sink_list, **rb_info)
-        self.number_of_channels = len(self.rb_exporter.sink.dtype)
-        self.events_required = 100000 if "eventcount" not in config_dict else config_dict["eventcount"]
+#     def __init__(self, source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
+#         # initialize mimoCoRB interface
+#         self.rb_exporter = rbPut(config_dict=config_dict, sink_list=sink_list, **rb_info)
+#         self.number_of_channels = len(self.rb_exporter.sink.dtype)
+#         self.events_required = 100000 if "eventcount" not in config_dict else config_dict["eventcount"]
 
-        self.event_count = 0
-        self.active = True
+#         self.event_count = 0
+#         self.active = True
 
-    def __call__(self, data):
-        """function called by redPoscdaq"""
-        if (self.events_required == 0 or self.event_count < self.events_required) and self.active:
-            # deliver pulse data and no metadata
-            self.active = self.rb_exporter(data, None)  # send data
-            self.event_count += 1
-        else:
-            self.active = self.rb_exporter(None, None)  # send None when done
-            print("redPoscdaq exiting")
-            sys.exit()
+#     def __call__(self, data):
+#         """function called by redPoscdaq"""
+#         if (self.events_required == 0 or self.event_count < self.events_required) and self.active:
+#             # deliver pulse data and no metadata
+#             self.active = self.rb_exporter(data, None)  # send data
+#             self.event_count += 1
+#         else:
+#             self.active = self.rb_exporter(None, None)  # send None when done
+#             print("redPoscdaq exiting")
+#             sys.exit()
             
-def rp_to_rb(source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
-    """Main function,
-    executed as a multiprocessing Process, to pass data from the RedPitaya to a mimoCoRB buffer
+# def rp_to_rb(source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
+#     """Main function,
+#     executed as a multiprocessing Process, to pass data from the RedPitaya to a mimoCoRB buffer
 
-    :param config_dict: configuration dictionary
-      - events_required: number of events to be taken
-      - number_of_samples, sample_time_ns, pretrigger_samples and analogue_offset
-      - decimation index, invert flags, trigger mode and trigger direction for RedPitaya
-    """
+#     :param config_dict: configuration dictionary
+#       - events_required: number of events to be taken
+#       - number_of_samples, sample_time_ns, pretrigger_samples and analogue_offset
+#       - decimation index, invert flags, trigger mode and trigger direction for RedPitaya
+#     """
 
-    # initialize mimocorb class
-    rb_source = rp_mimocorb(config_dict=config_dict, sink_list=sink_list, **rb_info)
-    rpControll(config_dict=config_dict, callback=rb_source)
-
-
-if __name__ == "__main__":  # --------------------------------------
-    # run mimoCoRB data acquisition suite
-    # the code below is idenical to the mimoCoRB script run_daq.py
-    import argparse
-    import sys
-    import time
-    from mimocorb.buffer_control import run_mimoDAQ
-
-    # define command line arguments ...
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("filename", nargs="?", default="demo_setup.yaml", help="configuration file")
-    parser.add_argument("-v", "--verbose", type=int, default=2, help="verbosity level (2)")
-    parser.add_argument("-d", "--debug", action="store_true", help="switch on debug mode (False)")
-    # ... and parse command line input
-    args = parser.parse_args()
-
-    print("\n*==* script " + sys.argv[0] + " running \n")
-    daq = run_mimoDAQ(args.filename, verbose=args.verbose, debug=args.debug)
-    daq.setup()
-    daq.run()
-    print("\n*==* script " + sys.argv[0] + " finished " + time.asctime() + "\n")
+#     # initialize mimocorb class
+#     rb_source = rp_mimocorb(config_dict=config_dict, sink_list=sink_list, **rb_info)
+#     rpControll(config_dict=config_dict, callback=rb_source)
 
 
+# if __name__ == "__main__":  # --------------------------------------
+#     # run mimoCoRB data acquisition suite
+#     # the code below is idenical to the mimoCoRB script run_daq.py
+#     import argparse
+#     import sys
+#     import time
+#     from mimocorb.buffer_control import run_mimoDAQ
+
+#     # define command line arguments ...
+#     parser = argparse.ArgumentParser(description=__doc__)
+#     parser.add_argument("filename", nargs="?", default="demo_setup.yaml", help="configuration file")
+#     parser.add_argument("-v", "--verbose", type=int, default=2, help="verbosity level (2)")
+#     parser.add_argument("-d", "--debug", action="store_true", help="switch on debug mode (False)")
+#     # ... and parse command line input
+#     args = parser.parse_args()
+
+#     print("\n*==* script " + sys.argv[0] + " running \n")
+#     daq = run_mimoDAQ(args.filename, verbose=args.verbose, debug=args.debug)
+#     daq.setup()
+#     daq.run()
+#     print("\n*==* script " + sys.argv[0] + " finished " + time.asctime() + "\n")
+
+
+def none_function(data):
+    pass
+
+rpControll({}, none_function)
 
