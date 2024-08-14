@@ -96,12 +96,12 @@ class rpControll:
         print("Setup done, starting Osci")
         self.start_first_osc()
 
-        self.test_rates()
-        #self.main_loop()
+        #self.test_rates()
+        self.main_loop()
         
         
     def command(self, code, number, value):
-        self.socket.sendall(struct.pacrbPutk("<Q", code << 56 | number << 52 | (int(value) & 0xFFFFFFFFFFFFF)))
+        self.socket.sendall(struct.pack("<Q", code << 56 | number << 52 | (int(value) & 0xFFFFFFFFFFFFF)))
         
     def recv_osc(self):
         data = bytearray()
@@ -185,7 +185,8 @@ class rpControll:
         
     
     def standard_callback(self, data):
-        print(data)
+        plt.plot(data[0])
+        plt.show()
 
             
             
@@ -226,7 +227,7 @@ class rpControll:
         self.sample_rate = config_dict["sample_rate"] if "sample_rate" in config_dict else 4
         self.ch1_negated = config_dict["ch1_negated"] if "ch1_negated" in config_dict else False
         self.ch2_negated = config_dict["ch2_negated"] if "ch2_negated" in config_dict else False
-        self.total_events = config_dict["total_events"] if "total_events" in config_dict else 100000
+        self.total_events = config_dict["total_events"] if "total_events" in config_dict else 10
         self.events_per_loop = config_dict["events_per_loop"] if "events_per_loop" in config_dict else 1000
         
         # oscilloscope configuration
@@ -337,5 +338,5 @@ class rpControll:
 def none_function(data):
     pass
 
-rpControll({}, none_function)
+rpControll({}, None)
 
