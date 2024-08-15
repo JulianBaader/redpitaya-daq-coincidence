@@ -80,11 +80,6 @@ class rpControl:
         #TODO das muss dann anders gemacht werden
         
         self.event_count = 0
-        
-        # status buffer
-        self.status_buffer = np.zeros(9, np.uint32)
-        self.status_view = self.status_buffer.view(np.uint8)
-        self.STATUS_SIZE = self.status_view.size
 
         # socket
         self.socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
@@ -93,9 +88,9 @@ class rpControl:
         
         
         self.setup_general()
-        self.setup_generator() #TODO test if überhaupt gewünscht
+        if self.start_generator:
+            self.setup_generator()
         self.setup_oscilloscope()
-        
         
         self.start_first_osc()
         print("Setup done")
@@ -105,41 +100,6 @@ class rpControl:
     def command(self, code, number, value):
         self.socket.sendall(struct.pack("<Q", code << 56 | number << 52 | (int(value) & 0xFFFFFFFFFFFFF)))
         
-    def recv_osc(self):
-        data = bytearray()
-        while len(data) < self.OSC_SIZE:
-            data += self.socket.recv(self.OSC_SIZE - len(data)) #TODO recv_into
-        self.osc_view[:] = np.frombuffer(data, np.uint8)
-        self.callback([self.osc_buffer[0::2], self.osc_buffer[1::2]])
-        
-    def recv_osc_into_buffer(self, buffer):
-        pass 
-        
-    def main_loop(self): #TODO optimize
-        start = time.time()
-        event_counter = self.total_events
-        while event_counter > 0:
-            val = min(self.events_per_loop, event_counter)
-            self.command(31, 0, val)
-            for i in range(val):
-                self.recv_osc()
-            event_counter -= val
-        stop = time.time()
-        rate = self.total_events / (stop - start)
-        return rate
-        
-    #TODO Drain und del
-        
-    def start_first_osc(self):
-        self.command(2, 0, 0)
-        self.command(19, 0, 0)
-        
-    def standard_callback(self, data):
-        plt.plot(data[0])
-        plt.show()
-
-            
-            
     # -> Functions for setting up the RedPitaya
             
     def setup_general(self):
@@ -156,8 +116,6 @@ class rpControl:
         self.command(18, 0, self.total_samples)
             
     def setup_generator(self):
-        #self.command(30, 0, 0) # stop generator
-        #self.command(3, 0, 0) # reset generator
         self.command(21, 0, self.fall_time)
         self.command(22, 0, self.rise_time)
         self.command(25, 0, self.pulse_rate)
@@ -165,6 +123,10 @@ class rpControl:
         for value in np.arange(GENERATOR_BINS, dtype=np.uint64) << 32 | self.spectrum:
             self.command(28, 0, value)
         self.command(29, 0, 0) # start generator
+    
+    def start_first_osc(self):
+        self.command(2, 0, 0) # reset oscilloscope
+        self.command(19, 0, 0) # start oscilloscope
         
     # <- Functions for setting up the RedPitaya
     
