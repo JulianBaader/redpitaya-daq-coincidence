@@ -242,10 +242,10 @@ class rpControl:
         self.event_count += 1
         npa.append(np.array([self.osc_reshaped]))
     
-    def run_and_save(self, filename):
+    def run_and_save(self):
         start = time.time()
         progress_bar = ProgressBar(total=self.number_of_loops, prefix='Loops done:', length=50)
-        with NpyAppendArray(filename) as npa:
+        with NpyAppendArray(self.filename) as npa:
             for i in range(self.number_of_loops):
                 progress_bar.print_progress_bar(i)
                 self.command(31, 0, self.events_per_loop)
@@ -259,10 +259,7 @@ class rpControl:
         
     # <- Functions for saving the data to file
     
-    
-    # TODO der einfachheit halber einfach number of events per loop, number of loops
-    # bei to npy ne progress bar wär irgendwie nice
-        
+
     
     # -> Functions for reading the config
         
@@ -275,6 +272,8 @@ class rpControl:
         self.ch2_negated = config_dict["ch2_negated"] if "ch2_negated" in config_dict else False
         self.number_of_loops = config_dict["number_of_loops"] if "number_of_loops" in config_dict else 100
         self.events_per_loop = config_dict["events_per_loop"] if "events_per_loop" in config_dict else 1000
+        
+        self.filename = config_dict["filename"] if "filename" in config_dict else "data.npy"
         
         # oscilloscope configuration
         self.trigger_source = config_dict["trigger_source"] if "trigger_source" in config_dict else 1
@@ -353,5 +352,5 @@ def rp_mimocorb(source_list=None, sink_list=None, observe_list=None, config_dict
 
 if __name__ == "__main__":
     control = rpControl()
-    control.run_and_save("test.npy")
+    control.run_and_save()
 

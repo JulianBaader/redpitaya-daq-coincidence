@@ -644,14 +644,12 @@ void *daq_handler(void *arg)
         if(send(sock_client, ram + start * 4, (0x007FFFFF - start) * 4, MSG_NOSIGNAL) < 0) break;
         if(send(sock_client, ram, (start + tot - 0x007FFFFF) * 4, MSG_NOSIGNAL) < 0) break;
       }
-      printf("send data\n");
       // reset oscilloscope 
       rst[1] &= ~0x0003;
       rst[1] |= 0x0003;
       // start oscilloscope
       rst[1] |= 0x0020;
       rst[1] &= ~0x0020;
-      printf("daq_count: %d\n",daq_count);
       daq_count--;
     }
   }
