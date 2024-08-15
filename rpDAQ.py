@@ -6,6 +6,8 @@ import socket
 import matplotlib.pyplot as plt
 import argparse
 
+from console_progressbar import ProgressBar
+
 from mimocorb.activity_logger import Gen_logger
 from mimocorb import mimo_buffer as bm
 
@@ -220,17 +222,12 @@ class rpControl:
             
     def run_mimo_daq(self):
         self.start = time.time()
-        while self.total_events - self.event_count > self.events_per_loop:
+        for i in range(self.number_of_loops):
             self.command(31, 0, self.events_per_loop)
-            for i in range(self.events_per_loop):
+            for j in range(self.events_per_loop):
                 if not self.osc_to_mimocorb():
                     self.drain(self.events_per_loop - i)
                     return
-        self.command(31, 0, self.total_events - self.event_count)
-        for i in range(self.total_events - self.event_count):
-            if not self.osc_to_mimocorb():
-                self.drain(self.events_per_loop - i)
-                return
         self.stop = time.time()
         self.finish()
 
@@ -239,28 +236,38 @@ class rpControl:
     
     # -> Functions for saving the data to file
     
-    def osc_to_npy(self, filename):
+    def osc_to_npy(self, npa):
         bytes_received = 0
         while bytes_received < self.OSC_SIZE:
             bytes_received += self.socket.recv_into(self.osc_view[bytes_received:], self.OSC_SIZE - bytes_received)
         self.event_count += 1
-        with NpyAppendArray(filename) as npa:
-            npa.append(np.array([self.osc_reshaped]))
-
+        npa.append(np.array([self.osc_reshaped]))
+    
     def run_and_save(self, filename):
         start = time.time()
-        while self.total_events - self.event_count > self.events_per_loop:
-            self.command(31, 0, self.events_per_loop)
-            for i in range(self.events_per_loop):
-                self.osc_to_npy(filename)
-        self.command(31, 0, self.total_events - self.event_count)
-        for i in range(self.total_events - self.event_count):
-            self.osc_to_npy(filename)
+        progress_bar = ProgressBar(total=self.number_of_loops, prefix='Loops done:', length=50)
+        with NpyAppendArray(filename) as npa:
+            for i in range(self.number_of_loops):
+                progress_bar.print_progress_bar(i)
+                self.command(31, 0, self.events_per_loop)
+                for j in range(self.events_per_loop):
+                    self.osc_to_npy(npa)
         stop = time.time()
-        rate = self.total_events / (stop - start)
+        progress_bar.print_progress_bar(self.number_of_loops)
+        rate = self.number_of_loops * self.events_per_loop / (stop - start)
         print("Data acquisition done. Rate: " + str(rate) + " Hz")
+
         
     # <- Functions for saving the data to file
+    
+    # -> Testing optimizations
+    
+    
+        
+    # <- Testing optimizations
+    
+    # TODO der einfachheit halber einfach number of events per loop, number of loops
+    # bei to npy ne progress bar wär irgendwie nice
         
     
     # -> Functions for reading the config
@@ -272,7 +279,7 @@ class rpControl:
         self.sample_rate = config_dict["sample_rate"] if "sample_rate" in config_dict else 4
         self.ch1_negated = config_dict["ch1_negated"] if "ch1_negated" in config_dict else False
         self.ch2_negated = config_dict["ch2_negated"] if "ch2_negated" in config_dict else False
-        self.total_events = config_dict["total_events"] if "total_events" in config_dict else 10000
+        self.number_of_loops = config_dict["number_of_loops"] if "number_of_loops" in config_dict else 100
         self.events_per_loop = config_dict["events_per_loop"] if "events_per_loop" in config_dict else 1000
         
         # oscilloscope configuration
@@ -286,7 +293,7 @@ class rpControl:
         # generator configuration
         self.fall_time = config_dict["fall_time"] if "fall_time" in config_dict else 10
         self.rise_time = config_dict["rise_time"] if "rise_time" in config_dict else 50
-        self.pulse_rate = config_dict["pulse_rate"] if "pulse_rate" in config_dict else 2000
+        self.pulse_rate = config_dict["pulse_rate"] if "pulse_rate" in config_dict else 1000
         self.distribution = config_dict["distribution"] if "distribution" in config_dict else 'poisson'
         self.spectrum = config_dict["spectrum"] if "spectrum" in config_dict else generator_array #TODO das ist nicht so schön
         self.start_generator = config_dict["start_generator"] if "start_generator" in config_dict else True
@@ -302,7 +309,7 @@ class rpControl:
             "sample_rate": self.sample_rate,
             "ch1_negated": self.ch1_negated,
             "ch2_negated": self.ch2_negated,
-            "total_events": self.total_events,
+            "number_of_loops": self.number_of_loops,
             "events_per_loop": self.events_per_loop,
             "trigger_source": self.trigger_source,
             "trigger_slope": self.trigger_slope,
@@ -335,8 +342,8 @@ class rpControl:
             raise ValueError(str(self.total_samples) + " is not a valid number of total samples. Must be less than " + str(MAXIMUM_SAMPLES))
         if self.distribution not in DISTRIBUTIONS:
             raise ValueError(str(self.distribution) + " is not a valid distribution. Must be in " + str(DISTRIBUTIONS))
-        if self.total_events < 0:
-            raise ValueError("Invalid number of events")
+        if self.number_of_loops < 0:
+            raise ValueError("Invalid number of loops")
         if self.events_per_loop < 0:
             raise ValueError("Invalid number of events per loop")
         
