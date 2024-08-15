@@ -260,11 +260,6 @@ class rpControl:
         
     # <- Functions for saving the data to file
     
-    # -> Testing optimizations
-    
-    
-        
-    # <- Testing optimizations
     
     # TODO der einfachheit halber einfach number of events per loop, number of loops
     # bei to npy ne progress bar wär irgendwie nice
