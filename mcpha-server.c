@@ -571,14 +571,6 @@ int main(int argc, char *argv[])
         pthread_detach(daq_thread);
         
       }
-      else if(code == 32)
-      {
-        /* drain daq*/
-        if(active_daq_thread)
-        {
-          drain_daq = 1;
-        }
-      }
     }
 
     close(sock_client);
@@ -639,7 +631,7 @@ void *daq_handler(void *arg)
     {
       // read oscilloscope data 
       pre = *(uint32_t *)(cfg + 76) + 1;
-      tot = *(uint32_t *)(cfg + 80) + 1;
+      tot = *(uint32_t *)(cfg + 80) + 1; //das müsste einmal reichen
       start = *(uint32_t *)(sts + 32) >> 1;
       start = (start - pre) & 0x007FFFFF;
       if(start + tot <= 0x007FFFFF)

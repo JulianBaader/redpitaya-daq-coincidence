@@ -47,8 +47,7 @@ command_dictionary = {
     28: "set spectrum bin",
     29: "start generator",
     30: "stop generator",
-    31: "start daq",
-    32: "drain daq"
+    31: "start daq"
 }
 
 SAMPLE_RATES = [1, 4, 8, 16, 32, 64, 128, 256]
