@@ -15,13 +15,13 @@ general:
   trigger_direction: &trigger_direction "rising" # or "falling"
   pre_trigger_samples: &pre_trigger_samples 103 # 5%
 
-rp_to_rb:
+rp_mimocorb:
   ip: 'rp-f0c38f.local'
   port: 1001
   sample_rate: 4
   ch1_negated: False
   ch2_negated: False
-  total_events: &number_of_events 100000
+  total_events: *number_of_events
   events_per_loop: 1000
   min_before_loop: 100
   

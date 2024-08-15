@@ -99,6 +99,7 @@ class rpControl:
         
         self.start_first_osc()
         print("Setup done")
+        
 
         
     def command(self, code, number, value):
@@ -214,11 +215,14 @@ class rpControl:
             
             # get new buffer and store event data and meta-data
             buffer = self.sink.get_new_buffer()
-            buffer.view(np.uint8)
+
+            view = buffer.view(np.uint8)
             # fill data
             bytes_received = 0
             while bytes_received < self.OSC_SIZE:
-                bytes_received += self.socket.recv_into(buffer[bytes_received:])
+                
+                bytes_received += self.socket.recv_into(view[bytes_received:], self.OSC_SIZE - bytes_received)
+
             
             self.event_count += 1
             
@@ -226,27 +230,48 @@ class rpControl:
             T_buffer_ready = time.time()
             deadtime = T_buffer_ready - T_data_ready
             deadtime_fraction = deadtime / (T_buffer_ready - self.T_last)
-            
+
             # set metadata
             self.sink.set_metadata(self.event_count, timestamp, deadtime_fraction)
+            
 
             self.T_last = T_buffer_ready
+            return True
+
         else:
             # make sure last data entry is also processed
             self.sink.process_buffer()
+            return False
+            
+    def drain(self, n):
+        self.stop = time.time()
+        for i in range(n):
+            data = bytearray()
+            while len(data) < self.OSC_SIZE:
+                data += self.socket.recv(self.OSC_SIZE - len(data))
+        self.finish()
+
+    def finish(self):
+        rate = self.event_count / (self.stop - self.start)
+        print("Data acquisition done. Rate: " + str(rate) + " Hz")
+        self.socket.close()
             
     def run_mimo_daq(self):
-        start = time.time()
+        self.start = time.time()
         while self.total_events - self.event_count > self.events_per_loop:
             self.command(31, 0, self.events_per_loop)
             for i in range(self.events_per_loop):
-                self.osc_to_mimocorb()
+                if not self.osc_to_mimocorb():
+                    self.drain(self.events_per_loop - i)
+                    return
         self.command(31, 0, self.total_events - self.event_count)
         for i in range(self.total_events - self.event_count):
-            self.osc_to_mimocorb()
-        stop = time.time()
-        rate = self.total_events / (stop - start)
-        print("Data acquisition done. Rate: " + str(rate) + " Hz")
+            if not self.osc_to_mimocorb():
+                self.drain(self.events_per_loop - i)
+                return
+        self.stop = time.time()
+        self.finish()
+
             
     # <- Functions for interaction with mimoCoRB
     
@@ -255,7 +280,7 @@ class rpControl:
     def osc_to_npy(self, filename):
         bytes_received = 0
         while bytes_received < self.OSC_SIZE:
-            bytes_received += self.socket.recv_into(self.osc_view[bytes_received:])
+            bytes_received += self.socket.recv_into(self.osc_view[bytes_received:], self.OSC_SIZE - bytes_received)
         self.event_count += 1
         with NpyAppendArray(filename) as npa:
             npa.append(np.array([self.osc_reshaped]))
