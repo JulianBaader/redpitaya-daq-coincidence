@@ -561,15 +561,16 @@ int main(int argc, char *argv[])
         /* start daq*/
 	      daq_count += data;
 
-        
-        active_daq_thread = 1;
-        if(pthread_create(&daq_thread, &attr, daq_handler, NULL) < 0)
+        if(active_daq_thread == 0)
         {
-          perror("pthread_create");
-          return EXIT_FAILURE;
+          active_daq_thread = 1;
+          if(pthread_create(&daq_thread, &attr, daq_handler, NULL) < 0)
+          {
+            perror("pthread_create");
+            return EXIT_FAILURE;
+          }
+          pthread_detach(daq_thread);
         }
-        pthread_detach(daq_thread);
-        
       }
     }
 
