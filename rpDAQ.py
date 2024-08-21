@@ -53,7 +53,7 @@ command_dictionary = {
 SAMPLE_RATES = [1, 4, 8, 16, 32, 64, 128, 256]
 TRIGGER_SOURCES = {1: 0, 2: 1}
 TRIGGER_SLOPES = {"rising": 0, "falling": 1}
-TRIGGER_MODES = {"normal": 0, "auto": 1}
+TRIGGER_MODES = {"normal": 0,"auto": 1}
 MAXIMUM_SAMPLES = 8388607 #TODO überprüfen
 ADC_RANGE = 4095 #TODO prob -4095 bis 4096 oder so ach keine Ahnung
 GENERATOR_BINS = 4096
@@ -62,6 +62,9 @@ DISTRIBUTIONS = {'uniform': 0, 'poisson': 1}
 generator_array = np.zeros(GENERATOR_BINS, np.uint32)
 for i in range(16):  # initialize with delta-functions
     generator_array[(i + 1) * 256 - 1] = 1
+    
+#generator_array[2048] = 1
+
 
         
 class rpControl:
@@ -117,6 +120,10 @@ class rpControl:
         self.command(18, 0, self.total_samples)
             
     def setup_generator(self):
+        if self.spectrum_file is not None:
+            self.spectrum = np.load(self.spectrum_file)
+        else:
+            self.spectrum = generator_array
         self.command(21, 0, self.fall_time)
         self.command(22, 0, self.rise_time)
         self.command(25, 0, self.pulse_rate)
@@ -270,6 +277,7 @@ class rpControl:
         self.sample_rate = config_dict["sample_rate"] if "sample_rate" in config_dict else 4
         self.ch1_negated = config_dict["ch1_negated"] if "ch1_negated" in config_dict else False
         self.ch2_negated = config_dict["ch2_negated"] if "ch2_negated" in config_dict else False
+        
         self.number_of_loops = config_dict["number_of_loops"] if "number_of_loops" in config_dict else 100
         self.events_per_loop = config_dict["events_per_loop"] if "events_per_loop" in config_dict else 1000
         
@@ -288,7 +296,7 @@ class rpControl:
         self.rise_time = config_dict["rise_time"] if "rise_time" in config_dict else 50
         self.pulse_rate = config_dict["pulse_rate"] if "pulse_rate" in config_dict else 1000
         self.distribution = config_dict["distribution"] if "distribution" in config_dict else 'poisson'
-        self.spectrum = config_dict["spectrum"] if "spectrum" in config_dict else generator_array #TODO das ist nicht so schön
+        self.spectrum_file = config_dict["spectrum_file"] if "spectrum_file" in config_dict else None
         self.start_generator = config_dict["start_generator"] if "start_generator" in config_dict else True
         
     def load_config_from_parser(self):
