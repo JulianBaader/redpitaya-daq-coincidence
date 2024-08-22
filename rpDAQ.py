@@ -258,10 +258,12 @@ class rpControl:
                 self.command(31, 0, self.events_per_loop)
                 for j in range(self.events_per_loop):
                     self.osc_to_npy(npa)
+                    
         stop = time.time()
         progress_bar.print_progress_bar(self.number_of_loops)
         rate = self.number_of_loops * self.events_per_loop / (stop - start)
         print("Data acquisition done. Rate: " + str(rate) + " Hz")
+        return rate
 
         
     # <- Functions for saving the data to file
@@ -287,14 +289,14 @@ class rpControl:
         self.trigger_source = config_dict["trigger_source"] if "trigger_source" in config_dict else 1
         self.trigger_slope = config_dict["trigger_slope"] if "trigger_slope" in config_dict else "rising"
         self.trigger_mode = config_dict["trigger_mode"] if "trigger_mode" in config_dict else "normal"
-        self.trigger_level = config_dict["trigger_level"] if "trigger_level" in config_dict else 500
+        self.trigger_level = config_dict["trigger_level"] if "trigger_level" in config_dict else 50
         self.pretrigger_samples = config_dict["pretrigger_samples"] if "pretrigger_samples" in config_dict else 100
         self.total_samples = config_dict["total_samples"] if "total_samples" in config_dict else 1000
 
         # generator configuration
         self.fall_time = config_dict["fall_time"] if "fall_time" in config_dict else 10
         self.rise_time = config_dict["rise_time"] if "rise_time" in config_dict else 50
-        self.pulse_rate = config_dict["pulse_rate"] if "pulse_rate" in config_dict else 1000
+        self.pulse_rate = config_dict["pulse_rate"] if "pulse_rate" in config_dict else 2000
         self.distribution = config_dict["distribution"] if "distribution" in config_dict else 'poisson'
         self.spectrum_file = config_dict["spectrum_file"] if "spectrum_file" in config_dict else None
         self.start_generator = config_dict["start_generator"] if "start_generator" in config_dict else True
@@ -361,4 +363,6 @@ def rp_mimocorb(source_list=None, sink_list=None, observe_list=None, config_dict
 if __name__ == "__main__":
     control = rpControl()
     control.run_and_save()
+
+
 
