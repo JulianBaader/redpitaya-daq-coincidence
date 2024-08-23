@@ -9,7 +9,7 @@ x = np.arange(LEN)
 modes = ['quast', 'pavel', 'gauss']
 
 for mode in modes:
-    s = np.zeros(LEN, dtype=int)
+    s = np.zeros(LEN, dtype=np.uint32)
     if mode == 'quast':
         for i in range(16):
             s[(i + 1) * 250 - 1] = 1
@@ -26,4 +26,3 @@ for mode in modes:
     plt.title(mode)
     plt.show()
     np.save(mode +'.npy', s)
-

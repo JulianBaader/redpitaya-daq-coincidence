@@ -5,6 +5,9 @@ import time
 import socket
 import matplotlib.pyplot as plt
 import argparse
+import signal
+import os
+import yaml
 
 from console_progressbar import ProgressBar
 
@@ -58,6 +61,9 @@ MAXIMUM_SAMPLES = 8388607 #TODO überprüfen
 ADC_RANGE = 4095 #TODO prob -4095 bis 4096 oder so ach keine Ahnung
 GENERATOR_BINS = 4096
 DISTRIBUTIONS = {'uniform': 0, 'poisson': 1}
+ACQUISITION_MODES = ['time', 'loops', 'infinite']
+
+PORT = 1001
 
 generator_array = np.zeros(GENERATOR_BINS, np.uint32)
 for i in range(16):  # initialize with delta-functions
@@ -71,23 +77,20 @@ class rpControl:
     """
     TODO
     """
-    def __init__(self ,config_dict = {}):
+    def __init__(self ,config_dict):
         self.load_config_from_dict(config_dict)
-        self.check_config()
-        
         
         # oscilloscope buffer
         self.osc_buffer = np.zeros(2 * self.total_samples, np.int16)
         self.osc_view = self.osc_buffer.view(np.uint8)
         self.osc_reshaped = self.osc_buffer.reshape((2, self.total_samples), order='F') # order='F' is so that [1,2,3,4,5,6] -> [[1,3,5], [2,4,6]] which is the way the data is sent
         self.OSC_SIZE = self.osc_view.size
-        #TODO das muss dann anders gemacht werden
         
         self.event_count = 0
 
         # socket
         self.socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
-        self.socket.connect((self.ip, self.port))
+        self.socket.connect((self.ip, PORT))
         self.socket.settimeout(5)
         
         
@@ -96,6 +99,9 @@ class rpControl:
             self.setup_generator()
         self.setup_oscilloscope()
         
+        self.stop_daq = False
+        signal.signal(signal.SIGINT, self.interrupt_handler)
+        
         self.start_first_osc()
         print("Setup done")
         
@@ -103,6 +109,9 @@ class rpControl:
         
     def command(self, code, number, value):
         self.socket.sendall(struct.pack("<Q", code << 56 | number << 52 | (int(value) & 0xFFFFFFFFFFFFF)))
+        
+    def interrupt_handler(self, signal, frame):
+        self.stop_daq = True
         
     # -> Functions for setting up the RedPitaya
             
@@ -120,10 +129,12 @@ class rpControl:
         self.command(18, 0, self.total_samples)
             
     def setup_generator(self):
-        if self.spectrum_file is not None:
-            self.spectrum = np.load(self.spectrum_file)
-        else:
-            self.spectrum = generator_array
+        self.spectrum = np.load(self.spectrum_file)
+        plt.plot(self.spectrum)
+        plt.show()
+        if self.spectrum.size != GENERATOR_BINS:
+            raise ValueError("Spectrum file must have " + str(GENERATOR_BINS) + " entries")
+
         self.command(21, 0, self.fall_time)
         self.command(22, 0, self.rise_time)
         self.command(25, 0, self.pulse_rate)
@@ -138,219 +149,132 @@ class rpControl:
         
     # <- Functions for setting up the RedPitaya
     
-    # -> Functions for interaction with mimoCoRB
-    
-    def setup_mimoCoRB(self, sink_list=None, config_dict=None, ufunc=None, **rb_info):
-        # basically the __init__ function of mimocorb.buffer_control.rbPut
-        
-        # sub-logger for this class
-        self.logger = Gen_logger(__class__.__name__)
-
-        # general part for each function (template)
-        if sink_list is None:
-            self.logger.error("Faulty ring buffer configuration passed, 'sink_list' missing!")
-            raise ValueError("ERROR! Faulty ring buffer configuration passed ('sink_list' missing)!")
-
-        self.sink = None
-        for key, value in rb_info.items():
-            if value == "read":
-                self.logger.error("Reading buffers not foreseen!!")
-                raise ValueError("ERROR! reading buffers not foreseen!!")
-            elif value == "write":
-                self.logger.info(f"Writing to buffer {sink_list[0]}")
-                self.sink = bm.Writer(sink_list[0])
-                if len(sink_list) > 1:
-                    self.logger.error("More than one sink presently not foreseen!")
-                    print("!!! More than one sink presently not foreseen!!")
-            elif value == "observe":
-                self.logger.error("Observer processes not foreseen!")
-                raise ValueError("ERROR! obervers not foreseen!!")
-
-        if self.sink is None:
-            self.logger.error("Faulty ring buffer configuration passed. No sink found!")
-            raise ValueError("Faulty ring buffer configuration passed. No sink found!")
-
-        
-        self.T_last = time.time()
-        
-    def osc_to_mimocorb(self):
-        if self.sink._active.is_set():
-            # do not write data if in paused mode
-            if self.sink._paused.is_set():
-                time.sleep(0.1)
-                return
-            T_data_ready = time.time()
-            timestamp = time.time_ns() * 1e-9  # in s as type float64
-            
-            
-            # get new buffer and store event data and meta-data
-            buffer = self.sink.get_new_buffer()
-
-            view = buffer.view(np.uint8)
-            # fill data
-            bytes_received = 0
-            while bytes_received < self.OSC_SIZE:
-                
-                bytes_received += self.socket.recv_into(view[bytes_received:], self.OSC_SIZE - bytes_received)
-
-            
-            self.event_count += 1
-            
-            # calculate deadtime
-            T_buffer_ready = time.time()
-            deadtime = T_buffer_ready - T_data_ready
-            deadtime_fraction = deadtime / (T_buffer_ready - self.T_last)
-
-            # set metadata
-            self.sink.set_metadata(self.event_count, timestamp, deadtime_fraction)
-            
-
-            self.T_last = T_buffer_ready
-            return True
-
-        else:
-            # make sure last data entry is also processed
-            self.sink.process_buffer()
-            return False
-            
-    def drain(self, n):
-        self.stop = time.time()
-        for i in range(n):
-            data = bytearray()
-            while len(data) < self.OSC_SIZE:
-                data += self.socket.recv(self.OSC_SIZE - len(data))
-        self.finish()
-
-    def finish(self):
-        rate = self.event_count / (self.stop - self.start)
-        print("Data acquisition done. Rate: " + str(rate) + " Hz")
-        self.socket.close()
-            
-    def run_mimo_daq(self):
-        self.start = time.time()
-        for i in range(self.number_of_loops):
-            self.command(31, 0, self.events_per_loop)
-            for j in range(self.events_per_loop):
-                if not self.osc_to_mimocorb():
-                    self.drain(self.events_per_loop - i)
-                    return
-        self.stop = time.time()
-        self.finish()
-
-            
-    # <- Functions for interaction with mimoCoRB
     
     # -> Functions for saving the data to file
     
-    def osc_to_npy(self, npa):
+    def osc_to_npy(self):
         bytes_received = 0
         while bytes_received < self.OSC_SIZE:
             bytes_received += self.socket.recv_into(self.osc_view[bytes_received:], self.OSC_SIZE - bytes_received)
         self.event_count += 1
-        npa.append(np.array([self.osc_reshaped]))
-    
+        self.npa.append(np.array([self.osc_reshaped]))
+        
+        
+    def execute_loop(self):
+        self.command(31, 0, self.events_per_loop)
+        for j in range(self.events_per_loop):
+            self.osc_to_npy()
+        
+
     def run_and_save(self):
-        start = time.time()
-        progress_bar = ProgressBar(total=self.number_of_loops, prefix='Loops done:', length=50)
-        with NpyAppendArray(self.filename) as npa:
-            for i in range(self.number_of_loops):
-                progress_bar.print_progress_bar(i)
-                self.command(31, 0, self.events_per_loop)
-                for j in range(self.events_per_loop):
-                    self.osc_to_npy(npa)
-                    
-        stop = time.time()
-        progress_bar.print_progress_bar(self.number_of_loops)
-        rate = self.number_of_loops * self.events_per_loop / (stop - start)
-        print("Data acquisition done. Rate: " + str(rate) + " Hz")
-        return rate
+        # TODO optimize
+        self.start = time.time()
+        loop_counter = 0
+        if self.acquisition_mode != 'infinite':
+            progress_bar = ProgressBar(total=self.acquisition_value, prefix='Acquiring Events:', length=50)
+        with NpyAppendArray(self.data_file) as self.npa:
+            if self.acquisition_mode == 'time':
+                time_expired = 0
+                while time_expired < self.acquisition_value and not self.stop_daq:
+                    self.execute_loop()
+                    time_expired = time.time() - self.start
+                    loop_counter += 1
+                    progress_bar.print_progress_bar(time_expired)
+            elif self.acquisition_mode == 'loops':
+                while loop_counter < self.acquisition_value and not self.stop_daq:
+                    self.execute_loop()
+                    time_expired = time.time() - self.start
+                    loop_counter += 1
+                    progress_bar.print_progress_bar(loop_counter)
+            elif self.acquisition_mode == 'infinite':
+                while not self.stop_daq:
+                    self.execute_loop()
+                    time_expired = time.time() - self.start
+                    loop_counter += 1
+                    print(f"\r{loop_counter*self.events_per_loop} events recorded at a rate of {round(loop_counter*self.events_per_loop/time_expired)}Hz", end="")
+            events = loop_counter * self.events_per_loop
+            print(f"\r{events} events recorded at a rate of {round(events/time_expired)}Hz")
+            metadata = {
+                'events': events,
+                'rate': events / time_expired,
+                'time': time_expired
+            }
+            yaml.dump(metadata, open(self.metadata_file, 'w'))
 
         
     # <- Functions for saving the data to file
     
 
-    
-    # -> Functions for reading the config
+
+
         
     def load_config_from_dict(self, config_dict):
-        # general configuration
-        self.ip = config_dict["ip"] if "ip" in config_dict else "rp-f0c38f.local"
-        self.port = config_dict["port"] if "port" in config_dict else 1001
-        self.sample_rate = config_dict["sample_rate"] if "sample_rate" in config_dict else 4
-        self.ch1_negated = config_dict["ch1_negated"] if "ch1_negated" in config_dict else False
-        self.ch2_negated = config_dict["ch2_negated"] if "ch2_negated" in config_dict else False
+        # general config
+        self.ip = config_dict['ip']
         
-        self.number_of_loops = config_dict["number_of_loops"] if "number_of_loops" in config_dict else 100
-        self.events_per_loop = config_dict["events_per_loop"] if "events_per_loop" in config_dict else 1000
-        
-        self.filename = config_dict["filename"] if "filename" in config_dict else "data.npy"
-        
-        # oscilloscope configuration
-        self.trigger_source = config_dict["trigger_source"] if "trigger_source" in config_dict else 1
-        self.trigger_slope = config_dict["trigger_slope"] if "trigger_slope" in config_dict else "rising"
-        self.trigger_mode = config_dict["trigger_mode"] if "trigger_mode" in config_dict else "normal"
-        self.trigger_level = config_dict["trigger_level"] if "trigger_level" in config_dict else 50
-        self.pretrigger_samples = config_dict["pretrigger_samples"] if "pretrigger_samples" in config_dict else 100
-        self.total_samples = config_dict["total_samples"] if "total_samples" in config_dict else 1000
-
-        # generator configuration
-        self.fall_time = config_dict["fall_time"] if "fall_time" in config_dict else 10
-        self.rise_time = config_dict["rise_time"] if "rise_time" in config_dict else 50
-        self.pulse_rate = config_dict["pulse_rate"] if "pulse_rate" in config_dict else 2000
-        self.distribution = config_dict["distribution"] if "distribution" in config_dict else 'poisson'
-        self.spectrum_file = config_dict["spectrum_file"] if "spectrum_file" in config_dict else None
-        self.start_generator = config_dict["start_generator"] if "start_generator" in config_dict else True
-        
-    def load_config_from_parser(self):
-        print("Not implemented yet. Use load_config_from_dict instead. Think of important parameters.")
-        # ip
-        
-    def config(self):
-        return {
-            "ip": self.ip,
-            "port": self.port,
-            "sample_rate": self.sample_rate,
-            "ch1_negated": self.ch1_negated,
-            "ch2_negated": self.ch2_negated,
-            "number_of_loops": self.number_of_loops,
-            "events_per_loop": self.events_per_loop,
-            "trigger_source": self.trigger_source,
-            "trigger_slope": self.trigger_slope,
-            "trigger_mode": self.trigger_mode,
-            "trigger_level": self.trigger_level,
-            "pretrigger_samples": self.pretrigger_samples,
-            "total_samples": self.total_samples,
-            "fall_time": self.fall_time,
-            "rise_time": self.rise_time,
-            "pulse_rate": self.pulse_rate,
-            "distribution": self.distribution,
-            "spectrum": self.spectrum,
-            "start_generator": self.start_generator
-        }
-        
-    def check_config(self):
+        self.sample_rate = config_dict['sample_rate']
         if self.sample_rate not in SAMPLE_RATES:
             raise ValueError(str(self.sample_rate) + " is not a valid sample rate. Must be in " + str(SAMPLE_RATES))
-        if self.trigger_source not in TRIGGER_SOURCES:
-            raise ValueError(str(self.trigger_source) + " is not a valid trigger source. Must be in " + str(TRIGGER_SOURCES))
-        if self.trigger_slope not in TRIGGER_SLOPES:
-            raise ValueError(str(self.trigger_slope) + " is not a valid trigger slope. Must be in " + str(TRIGGER_SLOPES))
-        if self.trigger_mode not in TRIGGER_MODES:
-            raise ValueError(str(self.trigger_mode) + " is not a valid trigger mode. Must be in " + str(TRIGGER_MODES))
-        if abs(self.trigger_level) > ADC_RANGE:
-            raise ValueError(str(self.trigger_level) + " is not a valid trigger level. Must be in [-" + str(ADC_RANGE) + ", " + str(ADC_RANGE) + "]")
-        if self.pretrigger_samples > self.total_samples:
-            raise ValueError("Pretrigger samples must be less than total samples")
-        if self.total_samples > MAXIMUM_SAMPLES:
-            raise ValueError(str(self.total_samples) + " is not a valid number of total samples. Must be less than " + str(MAXIMUM_SAMPLES))
-        if self.distribution not in DISTRIBUTIONS:
-            raise ValueError(str(self.distribution) + " is not a valid distribution. Must be in " + str(DISTRIBUTIONS))
-        if self.number_of_loops < 0:
-            raise ValueError("Invalid number of loops")
+        
+        self.ch1_negated = config_dict['ch1_negated']
+        self.ch2_negated = config_dict['ch2_negated']
+        
+        # data acquisition config
+        output_name = config_dict['output_name'] + "-" + time.strftime("%Y%m%d-%H%M") + "/"
+        os.makedirs(os.path.dirname(output_name), exist_ok=False)
+        self.data_file = output_name + "/data.npy"
+        self.metadata_file = output_name + "/metadata.yaml"
+        
+        config_file = output_name + "/config.yaml"
+        yaml.dump(config_dict, open(config_file, 'w'))
+        
+        self.events_per_loop = config_dict['events_per_loop']
         if self.events_per_loop < 0:
             raise ValueError("Invalid number of events per loop")
+        self.acquisition_mode = config_dict['acquisition_mode']
+        if self.acquisition_mode not in ACQUISITION_MODES:
+            raise ValueError(str(self.acquisition_mode) + " is not a valid acquisition mode. Must be in " + str(ACQUISITION_MODES))
+        if self.acquisition_mode != 'infinite':
+            self.acquisition_value = config_dict['acquisition_value']
+            if self.acquisition_value < 0:
+                raise ValueError("Invalid acquisition value")
         
-    # <- Functions for reading the config dict
+        # oscilloscope config
+        self.trigger_source = config_dict['trigger_source']
+        if self.trigger_source not in TRIGGER_SOURCES:
+            raise ValueError(str(self.trigger_source) + " is not a valid trigger source. Must be in " + str(TRIGGER_SOURCES.keys()))
+        self.trigger_slope = config_dict['trigger_slope']
+        if self.trigger_slope not in TRIGGER_SLOPES:
+            raise ValueError(str(self.trigger_slope) + " is not a valid trigger slope. Must be in " + str(TRIGGER_SLOPES.keys()))
+        self.trigger_mode = config_dict['trigger_mode']
+        if self.trigger_mode not in TRIGGER_MODES:
+            raise ValueError(str(self.trigger_mode) + " is not a valid trigger mode. Must be in " + str(TRIGGER_MODES.keys()))
+        self.trigger_level = config_dict['trigger_level']
+        if abs(self.trigger_level) > ADC_RANGE:
+            raise ValueError(str(self.trigger_level) + " is not a valid trigger level. Must be in [-" + str(ADC_RANGE) + ", " + str(ADC_RANGE) + "]")
+        self.total_samples = config_dict['total_samples']
+        if self.total_samples > MAXIMUM_SAMPLES:
+            raise ValueError(str(self.total_samples) + " is not a valid number of total samples. Must be less than " + str(MAXIMUM_SAMPLES))
+        self.pretrigger_samples = config_dict['pretrigger_samples']
+        if self.pretrigger_samples > self.total_samples:
+            raise ValueError("Pretrigger samples must be less than total samples")
+        
+        
+        # generator config
+        self.start_generator = config_dict['start_generator']
+        if self.start_generator:
+            self.rise_time = config_dict['rise_time'] #TODO valid values
+            self.fall_time = config_dict['fall_time'] #TODO valid values
+            self.pulse_rate = config_dict['pulse_rate'] #TODO valid values
+            self.distribution = config_dict['distribution']
+            if self.distribution not in DISTRIBUTIONS:
+                raise ValueError(str(self.distribution) + " is not a valid distribution. Must be in " + str(DISTRIBUTIONS.keys()))
+            self.spectrum_file = config_dict['spectrum_file']
+            if not os.path.isfile(self.spectrum_file):
+                raise ValueError("Spectrum file not found")
+
+        
+
     
 
     
@@ -361,7 +285,11 @@ def rp_mimocorb(source_list=None, sink_list=None, observe_list=None, config_dict
     
 
 if __name__ == "__main__":
-    control = rpControl()
+    parser = argparse.ArgumentParser(description='RedPitaya Data Acquisition')
+    parser.add_argument('config_file', nargs='?', default='config/rp-config.yaml', help='Configuration file')
+    args = parser.parse_args()
+    config_dict = yaml.load(open(args.config_file, 'r'), Loader=yaml.FullLoader)
+    control = rpControl(config_dict)
     control.run_and_save()
 
 
