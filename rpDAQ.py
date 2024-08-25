@@ -65,6 +65,8 @@ ACQUISITION_MODES = ['time', 'loops', 'infinite']
 
 PORT = 1001
 
+PLOT_SPECTRUM = False
+
 generator_array = np.zeros(GENERATOR_BINS, np.uint32)
 for i in range(16):  # initialize with delta-functions
     generator_array[(i + 1) * 256 - 1] = 1
@@ -130,8 +132,12 @@ class rpControl:
             
     def setup_generator(self):
         self.spectrum = np.load(self.spectrum_file)
-        plt.plot(self.spectrum)
-        plt.show()
+        if PLOT_SPECTRUM:
+            plt.plot(self.spectrum)
+            plt.title("Spectrum. Rate: " + str(self.pulse_rate) + "Hz")
+            plt.xlabel("Bin")
+            plt.ylabel("Count")
+            plt.show()
         if self.spectrum.size != GENERATOR_BINS:
             raise ValueError("Spectrum file must have " + str(GENERATOR_BINS) + " entries")
 
@@ -200,6 +206,10 @@ class rpControl:
                 'time': time_expired
             }
             yaml.dump(metadata, open(self.metadata_file, 'w'))
+            if self.stop_daq:
+                sys.exit("DAQ stopped")
+                
+            return events / time_expired
 
         
     # <- Functions for saving the data to file
@@ -220,7 +230,7 @@ class rpControl:
         self.ch2_negated = config_dict['ch2_negated']
         
         # data acquisition config
-        output_name = config_dict['output_name'] + "-" + time.strftime("%Y%m%d-%H%M") + "/"
+        output_name = config_dict['output_name'] + "-" + time.strftime("%Y%m%d-%H-%M-%S") + "/"
         os.makedirs(os.path.dirname(output_name), exist_ok=False)
         self.data_file = output_name + "/data.npy"
         self.metadata_file = output_name + "/metadata.yaml"
@@ -289,8 +299,6 @@ if __name__ == "__main__":
     parser.add_argument('config_file', nargs='?', default='config/rp-config.yaml', help='Configuration file')
     args = parser.parse_args()
     config_dict = yaml.load(open(args.config_file, 'r'), Loader=yaml.FullLoader)
-    control = rpControl(config_dict)
-    control.run_and_save()
 
 
 
