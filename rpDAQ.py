@@ -13,6 +13,7 @@ from console_progressbar import ProgressBar
 
 from mimocorb.activity_logger import Gen_logger
 from mimocorb import mimo_buffer as bm
+from mimocorb import buffer_control
 
 from npy_append_array import NpyAppendArray
 
@@ -67,12 +68,6 @@ PORT = 1001
 
 PLOT_SPECTRUM = False
 
-generator_array = np.zeros(GENERATOR_BINS, np.uint32)
-for i in range(16):  # initialize with delta-functions
-    generator_array[(i + 1) * 256 - 1] = 1
-    
-#generator_array[2048] = 1
-
 
         
 class rpControl:
@@ -88,27 +83,30 @@ class rpControl:
         self.osc_reshaped = self.osc_buffer.reshape((2, self.total_samples), order='F') # order='F' is so that [1,2,3,4,5,6] -> [[1,3,5], [2,4,6]] which is the way the data is sent
         self.OSC_SIZE = self.osc_view.size
         
+        # drain buffer
+        self.drain_buffer = np.zeros(2 * self.total_samples, np.int16)
+        self.drain_view = self.drain_buffer.view(np.uint8)
+        
+        # counters
         self.event_count = 0
+        self.loop_count = 0
+        self.drain_count = 0
+        
+        # get osc
+        self.get_osc = None
+        self.rbPut = None
 
         # socket
         self.socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
         self.socket.connect((self.ip, PORT))
         self.socket.settimeout(5)
         
-        
-        self.setup_general()
-        if self.start_generator:
-            self.setup_generator()
-        self.setup_oscilloscope()
+        self.setup_redpitaya()
         
         self.stop_daq = False
         signal.signal(signal.SIGINT, self.interrupt_handler)
         
-        self.start_first_osc()
-        print("Setup done")
-        
-
-        
+    
     def command(self, code, number, value):
         self.socket.sendall(struct.pack("<Q", code << 56 | number << 52 | (int(value) & 0xFFFFFFFFFFFFF)))
         
@@ -116,6 +114,13 @@ class rpControl:
         self.stop_daq = True
         
     # -> Functions for setting up the RedPitaya
+    def setup_redpitaya(self):
+        self.setup_general()
+        if self.start_generator:
+            self.setup_generator()
+        self.setup_oscilloscope()
+        print("Setup done")
+        self.start_first_osc()
             
     def setup_general(self):
         self.command(4, 0, self.sample_rate)
@@ -132,14 +137,15 @@ class rpControl:
             
     def setup_generator(self):
         self.spectrum = np.load(self.spectrum_file)
-        if PLOT_SPECTRUM:
-            plt.plot(self.spectrum)
-            plt.title("Spectrum. Rate: " + str(self.pulse_rate) + "Hz")
-            plt.xlabel("Bin")
-            plt.ylabel("Count")
-            plt.show()
         if self.spectrum.size != GENERATOR_BINS:
             raise ValueError("Spectrum file must have " + str(GENERATOR_BINS) + " entries")
+        if PLOT_SPECTRUM:
+            plt.plot(self.spectrum, label="Spectrum")
+            plt.title("Rate: " + str(self.pulse_rate) + "Hz; Fall time: " + str(self.fall_time) + "ns; Rise time: " + str(self.rise_time) + "µs")
+            plt.xlabel("Bin")
+            plt.ylabel("Count")
+            plt.legend()
+            plt.show()
 
         self.command(21, 0, self.fall_time)
         self.command(22, 0, self.rise_time)
@@ -155,64 +161,130 @@ class rpControl:
         
     # <- Functions for setting up the RedPitaya
     
+    # -> General DAQ functions
     
-    # -> Functions for saving the data to file
+    def setup_daq(self):
+        if self.acquisition_mode == 'mimoCoRB':
+            self.get_osc = self.get_osc_mimoCoRB
+        else:
+            self.get_osc = self.get_osc_npy
     
-    def osc_to_npy(self):
+    def osc_to_view(self, view):
         bytes_received = 0
         while bytes_received < self.OSC_SIZE:
-            bytes_received += self.socket.recv_into(self.osc_view[bytes_received:], self.OSC_SIZE - bytes_received)
+            bytes_received += self.socket.recv_into(view, self.OSC_SIZE - bytes_received)
         self.event_count += 1
-        self.npa.append(np.array([self.osc_reshaped]))
-        
+    
+    def osc_to_drain(self):
+        bytes_received = 0
+        while bytes_received < self.OSC_SIZE:
+            bytes_received += self.socket.recv_into(self.drain_view[bytes_received:], self.OSC_SIZE - bytes_received)
+        self.drain_count += 1
         
     def execute_loop(self):
         self.command(31, 0, self.events_per_loop)
         for j in range(self.events_per_loop):
-            self.osc_to_npy()
-        
-
-    def run_and_save(self):
-        # TODO optimize
+            if self.get_osc():
+                pass
+            else:
+                self.osc_to_drain()
+        self.loop_count += 1
+            
+    
+    def run_npy(self):
+        self.get_osc = self.get_osc_npy
+        if self.acquisition_mode == 'infinite':
+            self.run_npy_infinite()
+        elif self.acquisition_mode == 'loops':
+            self.run_npy_loops()
+        elif self.acquisition_mode == 'time':
+            self.run_npy_time()
+        elif self.acquisition_mode == 'single':
+            self.run_npy_single()
+        self.finish_npy()
+            
+    def run_mimo(self):
+        if self.rbPut is None:
+            raise ValueError("No rbPut object found. Call setup_mimoCoRB first")
         self.start = time.time()
-        loop_counter = 0
-        if self.acquisition_mode != 'infinite':
-            progress_bar = ProgressBar(total=self.acquisition_value, prefix='Acquiring Events:', length=50)
-        with NpyAppendArray(self.data_file) as self.npa:
-            if self.acquisition_mode == 'time':
-                time_expired = 0
-                while time_expired < self.acquisition_value and not self.stop_daq:
-                    self.execute_loop()
-                    time_expired = time.time() - self.start
-                    loop_counter += 1
-                    progress_bar.print_progress_bar(time_expired)
-            elif self.acquisition_mode == 'loops':
-                while loop_counter < self.acquisition_value and not self.stop_daq:
-                    self.execute_loop()
-                    time_expired = time.time() - self.start
-                    loop_counter += 1
-                    progress_bar.print_progress_bar(loop_counter)
-            elif self.acquisition_mode == 'infinite':
-                while not self.stop_daq:
-                    self.execute_loop()
-                    time_expired = time.time() - self.start
-                    loop_counter += 1
-                    print(f"\r{loop_counter*self.events_per_loop} events recorded at a rate of {round(loop_counter*self.events_per_loop/time_expired)}Hz", end="")
-            events = loop_counter * self.events_per_loop
-            print(f"\r{events} events recorded at a rate of {round(events/time_expired)}Hz")
-            metadata = {
-                'events': events,
-                'rate': events / time_expired,
-                'time': time_expired
-            }
-            yaml.dump(metadata, open(self.metadata_file, 'w'))
-            if self.stop_daq:
-                sys.exit("DAQ stopped")
+        while self.rbPut.sink._active.is_set() and not self.stop_daq:
+            self.execute_loop()
                 
-            return events / time_expired
-
         
-    # <- Functions for saving the data to file
+    
+    
+    def setup_mimoCoRB(self, config_dict=None, sink_list=None, **rb_info):
+        self.rbPut = buffer_control.rbPut(self, sink_list=None, config_dict=None, ufunc=None, **rb_info)
+        
+        
+        
+    def get_osc_mimoCoRB(self):
+        if self.rbPut.sink._paused.is_set():
+            timestamp = time.time_ns()
+            buffer = self.rbPut.sink.get_new_buffer()
+            view = buffer.view(np.uint8)
+            self.osc_to_view(view)
+            deadtime_fraction = 0 # TODO
+            self.rbPut.sink.set_metadata(self.event_count, timestamp, deadtime_fraction)
+            return True
+        else:
+            return False
+        
+    def get_osc_npy(self):
+        self.osc_to_view(self.osc_view)
+        self.npa.append(np.array([self.osc_reshaped]))
+        return True
+    
+    
+        
+    
+    
+
+            
+    def run_npy_loops(self):
+        progress_bar = ProgressBar(total=self.acquisition_value, prefix='Acquiring Events:', length=50)
+        self.start = time.time()
+        while self.loop_count < self.acquisition_value and not self.stop_daq:
+            self.execute_loop()
+            progress_bar.print_progress_bar(self.loop_count)
+            if self.stop_daq:
+                break
+            
+    def run_npy_time(self):
+        progress_bar = ProgressBar(total=self.acquisition_value, prefix='Acquiring Events:', length=50)
+        self.start = time.time()
+        while time.time() - self.start < self.acquisition_value and not self.stop_daq:
+            self.execute_loop()
+            progress_bar.print_progress_bar(time.time() - self.start)
+            
+    def run_npy_infinite(self):
+        self.start = time.time()
+        while not self.stop_daq:
+            self.execute_loop()
+            
+    def run_npy_single(self):
+        while not self.stop_daq:
+            input("Press Enter to acquire event")
+            self.start_first_osc()
+            self.command(31, 0, 1)
+            self.get_osc()
+
+            
+
+            
+        
+            
+    def finish_npy(self):
+        metadata = {
+            'events': self.event_count,
+            'rate': self.event_count / (time.time() - self.start),
+            'time': time.time() - self.start
+        }
+        yaml.dump(metadata, open(self.metadata_file, 'w'))
+        if self.stop_daq:
+            sys.exit("DAQ stopped with KeyboardInterrupt")
+        
+        
     
 
 
@@ -230,24 +302,31 @@ class rpControl:
         self.ch2_negated = config_dict['ch2_negated']
         
         # data acquisition config
-        output_name = config_dict['output_name'] + "-" + time.strftime("%Y%m%d-%H-%M-%S") + "/"
-        os.makedirs(os.path.dirname(output_name), exist_ok=False)
-        self.data_file = output_name + "/data.npy"
-        self.metadata_file = output_name + "/metadata.yaml"
-        
-        config_file = output_name + "/config.yaml"
-        yaml.dump(config_dict, open(config_file, 'w'))
-        
         self.events_per_loop = config_dict['events_per_loop']
         if self.events_per_loop < 0:
             raise ValueError("Invalid number of events per loop")
+        
+        
         self.acquisition_mode = config_dict['acquisition_mode']
-        if self.acquisition_mode not in ACQUISITION_MODES:
-            raise ValueError(str(self.acquisition_mode) + " is not a valid acquisition mode. Must be in " + str(ACQUISITION_MODES))
-        if self.acquisition_mode != 'infinite':
-            self.acquisition_value = config_dict['acquisition_value']
-            if self.acquisition_value < 0:
-                raise ValueError("Invalid acquisition value")
+        if self.acquisition_mode != 'mimoCoRB':
+            if self.acquisition_mode not in ACQUISITION_MODES:
+                raise ValueError(str(self.acquisition_mode) + " is not a valid acquisition mode. Must be in " + str(ACQUISITION_MODES))
+            if self.acquisition_mode != 'infinite':
+                self.acquisition_value = config_dict['acquisition_value']
+                if self.acquisition_value < 0:
+                    raise ValueError("Invalid acquisition value")
+            
+            output_name = config_dict['output_name'] + "-" + time.strftime("%Y%m%d-%H-%M-%S") + "/"
+            os.makedirs(os.path.dirname(output_name), exist_ok=False)
+            self.data_file = output_name + "/data.npy"
+            self.metadata_file = output_name + "/metadata.yaml"
+            
+            config_file = output_name + "/config.yaml"
+            yaml.dump(config_dict, open(config_file, 'w'))
+        
+        
+
+
         
         # oscilloscope config
         self.trigger_source = config_dict['trigger_source']
@@ -289,9 +368,10 @@ class rpControl:
 
     
 def rp_mimocorb(source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
+    config_dict['acquisition_mode'] = 'mimoCoRB'
     control = rpControl(config_dict)
     control.setup_mimoCoRB(config_dict=config_dict, sink_list=sink_list, **rb_info)
-    control.run_mimo_daq()
+    control.run_mimo()
     
 
 if __name__ == "__main__":
@@ -299,6 +379,8 @@ if __name__ == "__main__":
     parser.add_argument('config_file', nargs='?', default='config/rp-config.yaml', help='Configuration file')
     args = parser.parse_args()
     config_dict = yaml.load(open(args.config_file, 'r'), Loader=yaml.FullLoader)
+    control = rpControl(config_dict)
+    control.run_npy()
 
 
 

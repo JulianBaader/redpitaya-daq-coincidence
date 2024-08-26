@@ -8,7 +8,7 @@ ch2_negated: false
 
 # data acquisition configuration
 output_name: 'target/rpdaq' # name of the folder where the data is stored. Will be created and appended with YYYYMMDD-HHMM
-events_per_loop: 1000 # number of events per loop. Due to networking there is always a short delay between loops
+events_per_loop: 1000 # number of events per loop. Due to networking there is always a short delay between loops.
 acquisition_mode: 'loops' # acquisition mode (time or loops or infinite)
 acquisition_value: 100 # acquisition value in loops or minmum amount of time in seconds (last loop might be longer)
 
