@@ -22,46 +22,51 @@
 RingBuffer:
   # define ring buffers
   - RB_1:
-      # raw input data buffer (from picoScope, file or simulation)
+      # raw input data buffer (from redpitaya)
       number_of_slots: 100
       channel_per_slot: 1000
       data_type:
           1: ['ch1', "int16"]
           2: ['ch2', "int16"]
   - RB_2:
-      # pulse height
+      # pulse height of the raw data (trigger channel)
       number_of_slots: 100
       channel_per_slot: 1
       data_type:
           1: ['height', "int16"]
+  
+  - RB_3:
+      # pulse height of the coinciding pulses
+      number_of_slots: 100
+      channel_per_slot: 1
+      data_type:
+          1: ['height_trigger', "int16"]
+          2: ['height_coincidence', "int16"]
+          3: ['DeltaT', "int16"]
 
 Functions:
   # define functions and ringbuffer assignment
 
-  - Fkt_main:
-      config_file: "config/spectrum_config.yaml"
+  #- Fkt_main:
+  #    config_file: "config/spectrum_config.yaml"
 
   - Fkt_1:
     # data from RedPitaya
        file_name: "rpDAQ"
        fkt_name: "rp_mimocorb"
-    # import from file   
-     #  file_name: "modules/file_source"
-     #  fkt_name: "tar_parquet_source"
-    # simulated data
-     #  file_name: "modules/simul_source"
-     #  fkt_name: "simulation_source"
+       config_file: "config/rp_config.yaml"
        num_process: 1
        RB_assign:
            RB_1: "write"
 
   - Fkt_2:
-       file_name: "modules/pha"
-       fkt_name: "pha"
-       num_process: 4
+       file_name: "modules/coincidence"
+       fkt_name: "coincidence"
+       num_process: 2
        RB_assign:
            RB_1: "read"
            RB_2: "write"
+           RB_3: "write"
 
   - Fkt_3:
       file_name: "modules/exporters"
@@ -70,6 +75,13 @@ Functions:
       num_process: 1
       RB_assign:
            RB_2: "read"
+  - Fkt_4:
+      file_name: "modules/exporters"
+      #fkt_name: "save_to_txt" # save data to text
+      fkt_name: "drain"        # no saving of data
+      num_process: 1
+      RB_assign:
+           RB_3: "read"
 
 # --- the following functions are optioal 	   
 
@@ -79,4 +91,10 @@ Functions:
       num_process: 1
       RB_assign:
            RB_1: "observe"
+  - Fkt_5:
+      file_name: "modules/plot_histogram"
+      fkt_name: "plot_histogram"
+      num_process: 1
+      RB_assign:
+           RB_2: "observe"
 
