@@ -8,6 +8,16 @@ def tag_peaks(input_data, peak_config):
         peaks[key], peaks_prop[key] = signal.find_peaks(
             input_data[key], prominence=peak_config['prominence'], distance=peak_config['distance'], width=peak_config['width']
         )
+        # remove peaks that clip
+        clipped = []
+        for i in range(len(peaks[key])):
+            if input_data[key][peaks[key][i]] >= peak_config['clip_value']:
+                clipped.append(i)
+        peaks[key] = np.delete(peaks[key], clipped)
+        for prop in peaks_prop[key]:
+            peaks_prop[key][prop] = np.delete(peaks_prop[key][prop], clipped)
+                
+                
     return peaks, peaks_prop
 
 # Pulse height detection like Pavels algorhythm
