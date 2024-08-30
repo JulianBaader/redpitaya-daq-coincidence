@@ -1,9 +1,10 @@
 from mimocorb.buffer_control import rbExport
 import numpy as np
 import time
+import os
 
 def rb_to_spectrum(source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
-    if len(source_list > 1):
+    if len(source_list) > 1:
         print("!!! More than one source presently not foreseen!!")
     if source_list[0]['values_per_slot'] != 1:
         print("!!! Only one value per slot presently foreseen!!")
@@ -17,10 +18,14 @@ def rb_to_spectrum(source_list=None, sink_list=None, observe_list=None, config_d
     
     factor = {}
     hist = {}
+    min = {}
+    max = {}
     discarded = {}
     for key in spectrum_config:
         keys.append(key)
         start, stop, nbins = spectrum_config[key]
+        min[key] = start
+        max[key] = stop
         factor[key] = nbins / (stop - start)
         hist[key] = np.zeros(nbins)
         discarded[key] = []
@@ -36,8 +41,8 @@ def rb_to_spectrum(source_list=None, sink_list=None, observe_list=None, config_d
             for key in keys:
                 val = d[0][key][0] # first index is for [data, metadata], second for key, third for first value
                 if val is not None:
-                    if start[key] <= val <= stop[key]:
-                        hist[key][int((val - start[key]) * factor[key])] += 1
+                    if min[key] <= val <= max[key]:
+                        hist[key][int((val - min[key]) * factor[key])] += 1
                     else:
                         discarded[key].append(val)
         else: # last data received -> finish execution
@@ -50,3 +55,45 @@ def rb_to_spectrum(source_list=None, sink_list=None, observe_list=None, config_d
     #print('Discarded values:', discarded) #TODO if interested in discarded values they may be saved to a file
     for key in keys:
         np.save(filename + '_' + key, hist[key])
+
+
+def plot_spectrum(source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
+    update_interval = config_dict['update_interval']
+    filename = config_dict['directory_prefix'] + config_dict['filename']
+    spectrum_config = config_dict['spectrum_config']
+    keys = [key for key in spectrum_config]
+    
+    import matplotlib.pyplot as plt
+    
+    plt.ion()
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    
+    lines = {}
+    xs = {}
+    ys = {}
+    for key in keys:
+        xs[key] = np.linspace(spectrum_config[key][0], spectrum_config[key][1], spectrum_config[key][2])
+        ys[key] = np.zeros(spectrum_config[key][2])
+        lines[key], = ax.plot(xs[key],ys[key], label=key)
+    ax.legend()
+    plt.show()
+    
+
+    
+    
+    while True:
+        time.sleep(update_interval)
+        for key in config_dict['spectrum_config']:
+            # check if file exists
+            if not os.path.exists(filename + '_' + key + '.npy'):
+                continue
+            hist = np.load(filename + '_' + key + '.npy')
+            lines[key].set_ydata(hist)
+        ax.relim()
+        ax.autoscale_view()
+        fig.canvas.draw()
+        fig.canvas.flush_events()
+        
+            
+        
