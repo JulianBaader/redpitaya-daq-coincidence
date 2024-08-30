@@ -35,7 +35,7 @@ def observer_plotter(source_list=None, sink_list=None, observe_list=None, config
     obs = bc.rbObserver(observe_list=observe_list, config_dict=config_dict, **rb_info)
     
     plt.ion()
-    fig = plt.figure()
+    fig = plt.figure("Trigger and Coincidence Signal")
     ax = fig.add_subplot(111)
     x = np.arange(xlen)
     y = np.zeros(xlen)
@@ -49,7 +49,6 @@ def observer_plotter(source_list=None, sink_list=None, observe_list=None, config
     ax.set_xlim(0, xlen)
     ax.set_ylim(-ADC_LIMIT, ADC_LIMIT)
     ax.legend()
-    
     plt.show()
     
     

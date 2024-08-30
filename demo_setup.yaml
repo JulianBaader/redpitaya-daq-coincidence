@@ -65,7 +65,7 @@ Functions:
        file_name: "modules/coincidence"
        fkt_name: "coincidence"
        config_file: "config/coincidence-config.yaml"
-       num_process: 3
+       num_process: 1
        RB_assign:
            RB_1: "read"
            RB_2: "write"

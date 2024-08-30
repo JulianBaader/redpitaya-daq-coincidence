@@ -1,6 +1,7 @@
 from scipy import signal
 import numpy as np
 
+
 # def tag_peaks(input_data, peak_config):
 #     peaks = {}
 #     peaks_prop = {}
@@ -37,7 +38,7 @@ def find_first_value(arr, i, min_value,direction="left"):
     """
     
     if i < 0 or i > len(arr):
-        return -1  # return -1 if i is out of the array bounds
+        raise ValueError("Index i is out of the array bounds")
     
     # Convert to numpy array if not already
     arr = np.array(arr)
@@ -56,14 +57,17 @@ def find_first_value(arr, i, min_value,direction="left"):
     return int(valid_indices[-1]) if direction == "left" else int(valid_indices[0] + i) #TODO kann das grad net denken ob der right part stimmt
 
 def pha(osc_data, peak_config):
+    #TODO it would be nice to be able to look at peaks that are not valid
     prominence = peak_config['prominence']
+    width = peak_config['width']
     clip_value = peak_config['clip_value']
     gradient_min = peak_config['gradient_min']
     fluctuation = peak_config['fluctuation']
     constant_length = peak_config['constant_length']
     
     
-    peaks, _ = signal.find_peaks(osc_data, prominence=prominence)
+    peaks, peaks_prop = signal.find_peaks(osc_data, prominence=prominence, width=width)
+    left_ips = peaks_prop['left_ips']
     
     clipped = []
     for i in range(len(peaks)):
@@ -72,8 +76,8 @@ def pha(osc_data, peak_config):
     peaks = np.delete(peaks, clipped)
     # find start of peak
     start = []
-    for peak in peaks:
-        start.append(find_first_value(np.gradient(osc_data), peak, gradient_min,'left'))
+    for ips in left_ips:
+        start.append(find_first_value(np.gradient(osc_data), int(ips), gradient_min,'left'))
     # check if start is valid
     invalid = []
     for i in range(len(peaks)):
@@ -83,7 +87,8 @@ def pha(osc_data, peak_config):
         if start[i] - constant_length < 0:
             invalid.append(i)
             continue
-        if np.std(osc_data[start[i]-constant_length:start[i]]) > fluctuation:
+        std = np.std(osc_data[start[i]-constant_length:start[i]])
+        if std > fluctuation:
             invalid.append(i)
             continue
     peaks = np.delete(peaks, invalid)

@@ -5,14 +5,16 @@ offset: 0 # offset (of the trigger channel) in samples
 window: 125 # window in samples (with rate 4 125 samples = 4us)
 
 peak_config_trigger:
-  prominence: 200
+  prominence: 100
+  width: 10
   clip_value: 4095
   gradient_min: 0
-  fluctuation: 10
-  constant_length: 50
+  fluctuation: 5
+  constant_length: 10
 peak_config_coincidence:
   prominence: 200
+  width: 10
   clip_value: 4095
   gradient_min: 0
-  fluctuation: 10
-  constant_length: 50
+  fluctuation: 5
+  constant_length: 10
