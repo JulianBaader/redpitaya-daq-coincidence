@@ -23,10 +23,18 @@ pretrigger_samples: 100 # number of samples before the trigger
 total_samples: 1000 # total number of samples
 
 # signal generator configuration
-rise_time: 10 # rise time in ns
-fall_time: 10 # fall time in us
+rise_time: 50 # rise time in ns
+fall_time: 2 # fall time in us
 pulse_rate: 2000 # pulse rate in Hz
 distribution: 'poisson' # distribution of the pulse rate (poisson or uniform)
 spectrum_file: 'generators/quast.npy' # file with the spectrum of the signal generator (in csv format) see generators/create_spectrum.py for more information
 start_generator: true # start the signal generator
 
+
+
+
+path: "./source/"
+number_of_samples: 1000
+pre_trigger_samples: 100
+sleeptime: 0.000
+random: true
