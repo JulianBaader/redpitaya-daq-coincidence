@@ -35,15 +35,19 @@ def observer_plotter(source_list=None, sink_list=None, observe_list=None, config
     obs = bc.rbObserver(observe_list=observe_list, config_dict=config_dict, **rb_info)
     
     plt.ion()
+    plt.style.use('default')
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    trigger_color = colors[0]
+    coincidence_color = colors[1]
     fig = plt.figure("Trigger and Coincidence Signal")
     ax = fig.add_subplot(111)
     x = np.arange(xlen)
     y = np.zeros(xlen)
-    line_trigger, = ax.plot(x, y, label='trigger')
-    line_coincidence, = ax.plot(x, y, label='coincidence')
+    line_trigger, = ax.plot(x, y, label='trigger', color=trigger_color)
+    line_coincidence, = ax.plot(x, y, label='coincidence', color=coincidence_color)
     
-    vlines_trigger = ax.vlines([], ymin=-ADC_LIMIT, ymax=ADC_LIMIT, label='Trigger Peaks')
-    vlines_coincidence = ax.vlines([], ymin=-ADC_LIMIT, ymax=ADC_LIMIT, label='Coincidence Peaks')
+    vlines_trigger = ax.vlines([], ymin=-ADC_LIMIT, ymax=ADC_LIMIT, color=trigger_color)
+    vlines_coincidence = ax.vlines([], ymin=-ADC_LIMIT, ymax=ADC_LIMIT, color=coincidence_color)
     ax.set_xlabel('Sample Number')
     ax.set_ylabel('ADC-Value')
     ax.set_xlim(0, xlen)
@@ -52,12 +56,24 @@ def observer_plotter(source_list=None, sink_list=None, observe_list=None, config
     plt.show()
     
     
+    last_event_count = 0
+    last_event_time = -1
     
     while True:
         data = next(obs())
         if data is not None:
             osc_trigger = data[0][trigger_channel]
             osc_coincidence = data[0][coincidence_channel]
+            
+            metadata = data[1]
+            counter = metadata['counter'][0]
+            timestamp = metadata['timestamp'][0]
+            
+            rate = (counter - last_event_count) / (timestamp - last_event_time)
+            last_event_count = counter
+            last_event_time = timestamp
+            ax.set_title('Event Rate: {:.2f} Hz'.format(rate))
+            
             
             peaks_trigger, heights_trigger = ana.pha(osc_trigger, peak_config_trigger)
             peaks_coincidence, heights_coincidence = ana.pha(osc_coincidence, peak_config_coincidence)
@@ -71,8 +87,8 @@ def observer_plotter(source_list=None, sink_list=None, observe_list=None, config
             min_trigger = max_trigger-heights_trigger
             min_coincidence = max_coincidence-heights_coincidence
             
-            vlines_trigger = ax.vlines(peaks_trigger, ymin=min_trigger, ymax=max_trigger, label='Trigger Peaks')
-            vlines_coincidence = ax.vlines(peaks_coincidence, ymin=min_coincidence, ymax=max_coincidence, label='Coincidence Peaks')
+            vlines_trigger = ax.vlines(peaks_trigger, ymin=min_trigger, ymax=max_trigger, color=trigger_color)
+            vlines_coincidence = ax.vlines(peaks_coincidence, ymin=min_coincidence, ymax=max_coincidence, color=coincidence_color)
 
             
             line_trigger.set_ydata(osc_trigger)
@@ -81,8 +97,9 @@ def observer_plotter(source_list=None, sink_list=None, observe_list=None, config
             fig.canvas.flush_events()
             dt = 0
             while obs.source._active.is_set():
-                time.sleep(0.025)
+                time.sleep(0.025) # to avoid to much CPU load but still provide interaction at 30FPS
                 dt += 0.025
+                fig.canvas.flush_events()
                 if dt >= min_sleeptime:
                     break
         else:

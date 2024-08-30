@@ -67,14 +67,19 @@ def pha(osc_data, peak_config):
     
     
     peaks, peaks_prop = signal.find_peaks(osc_data, prominence=prominence, width=width)
-    left_ips = peaks_prop['left_ips']
-    
+
+    # remove peaks that clip
     clipped = []
     for i in range(len(peaks)):
         if osc_data[peaks[i]] >= clip_value:
             clipped.append(i)
     peaks = np.delete(peaks, clipped)
+    for prop in peaks_prop:
+        peaks_prop[prop] = np.delete(peaks_prop[prop], clipped)
+        
+
     # find start of peak
+    left_ips = peaks_prop['left_ips']
     start = []
     for ips in left_ips:
         start.append(find_first_value(np.gradient(osc_data), int(ips), gradient_min,'left'))

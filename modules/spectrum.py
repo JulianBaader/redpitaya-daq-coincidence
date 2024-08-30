@@ -3,6 +3,8 @@ import numpy as np
 import time
 import os
 
+
+
 def rb_to_spectrum(source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
     if len(source_list) > 1:
         print("!!! More than one source presently not foreseen!!")
@@ -65,8 +67,9 @@ def plot_spectrum(source_list=None, sink_list=None, observe_list=None, config_di
     
     import matplotlib.pyplot as plt
     
+    plt.style.use('default')
     plt.ion()
-    fig = plt.figure()
+    fig = plt.figure(num='Spectrum of trigger channel')
     ax = fig.add_subplot(111)
     
     lines = {}
@@ -76,24 +79,29 @@ def plot_spectrum(source_list=None, sink_list=None, observe_list=None, config_di
         xs[key] = np.linspace(spectrum_config[key][0], spectrum_config[key][1], spectrum_config[key][2])
         ys[key] = np.zeros(spectrum_config[key][2])
         lines[key], = ax.plot(xs[key],ys[key], label=key)
+    # make the title the total number of events
+    ax.set_title('Total number of events: 0')
     ax.legend()
     plt.show()
     
 
-    
+    last_update_time = time.time()
     
     while True:
-        time.sleep(update_interval)
-        for key in config_dict['spectrum_config']:
-            # check if file exists
-            if not os.path.exists(filename + '_' + key + '.npy'):
-                continue
-            hist = np.load(filename + '_' + key + '.npy')
-            lines[key].set_ydata(hist)
-        ax.relim()
-        ax.autoscale_view()
-        fig.canvas.draw()
+        if time.time() - last_update_time > update_interval:
+            last_update_time = time.time()
+            for key in config_dict['spectrum_config']:
+                # check if file exists
+                if not os.path.exists(filename + '_' + key + '.npy'):
+                    continue
+                hist = np.load(filename + '_' + key + '.npy')
+                lines[key].set_ydata(hist)
+                ax.set_title('Total number of events: ' + str(int(np.sum(hist))))
+            ax.relim()
+            ax.autoscale_view()
+            fig.canvas.draw()
         fig.canvas.flush_events()
+        time.sleep(0.025) # to avoid to much CPU load but still provide interaction at 30FPS
         
             
         
