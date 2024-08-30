@@ -22,8 +22,8 @@ def coincidence(source_list=None, sink_list=None, observe_list=None, config_dict
     offset = config_dict['offset']
     window = config_dict['window']
     
-    dtype_trigger = source_list[0]['dtype']
-    dtype_coincidence = source_list[1]['dtype']
+    dtype_trigger = sink_list[0]['dtype']
+    dtype_coincidence = sink_list[1]['dtype']
     
     entry_out_trigger = np.zeros((1,), dtype=dtype_trigger)
     entry_out_coincidence = np.zeros((1,), dtype=dtype_coincidence)
@@ -47,9 +47,10 @@ def coincidence(source_list=None, sink_list=None, observe_list=None, config_dict
                     entry_out_coincidence['height_coincidence'][0] = peaks_prop[coincidence_channel]['jump'][coincidence_index]
                     entry_out_coincidence['DeltaT'][0] = trigger_position - coincidence_position + offset
                     out_coincidence.append(entry_out_coincidence)
+        out_trigger = [np.max(input_data[trigger_channel])]
         return [out_trigger,out_coincidence]
         
-        
+
             
             
         

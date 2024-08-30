@@ -1,0 +1,5 @@
+update_interval: 5
+filename: "triggerchannel_spectrum"
+spectrum_config:
+# key   : [min, max, nbins]
+  height: [0, 4095, 4096]
