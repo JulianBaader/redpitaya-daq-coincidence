@@ -1,0 +1,26 @@
+general:
+  runtime: 600
+  runevents: 100000
+
+drain:
+  empty:
+
+plot_waveform:
+  title: "waveform"
+  min_sleeptime: 0.5                # time to wait between graphics updates
+  number_of_samples: 1000
+  sample_time_ns: 32
+  pre_trigger_samples: 100
+  channel_range: 4096                # channel range in mV
+  trigger_channel: '1'  # Channel name 
+  trigger_level: 50  # value in mV, take account of analogue_offset, which is added to input voltage !
+
+save_to_txt:
+  filename: "triggerchannel"
+  time_to_save: 10
+
+rb_to_spectrum:
+  number_of_bins: 4096
+  offset: 0
+  min_events_for_update: 1000
+  min_time_for_update: 5

@@ -1,0 +1,12 @@
+trigger_channel: 'ch1'
+coincidence_channel: 'ch2'
+
+offset: 0 # offset (of the trigger channel) in samples
+window: 125 # window in samples (with rate 4 125 samples = 4us)
+
+peak_config:
+  prominence: 200
+  distance: 100
+  width: 200
+  clip_value: 4095
+gradient_min: 0

@@ -47,14 +47,14 @@ RingBuffer:
 Functions:
   # define functions and ringbuffer assignment
 
-  #- Fkt_main:
-  #    config_file: "config/spectrum_config.yaml"
+  - Fkt_main:
+      config_file: "config/general-config.yaml"
 
   - Fkt_1:
     # data from RedPitaya
        file_name: "rpDAQ"
        fkt_name: "rp_mimocorb"
-       config_file: "config/rp_config.yaml"
+       config_file: "config/rp-config.yaml"
        num_process: 1
        RB_assign:
            RB_1: "write"
@@ -62,16 +62,16 @@ Functions:
   - Fkt_2:
        file_name: "modules/coincidence"
        fkt_name: "coincidence"
-       num_process: 2
+       config_file: "config/coincidence-config.yaml"
+       num_process: 3
        RB_assign:
            RB_1: "read"
            RB_2: "write"
            RB_3: "write"
 
   - Fkt_3:
-      file_name: "modules/exporters"
-      #fkt_name: "save_to_txt" # save data to text
-      fkt_name: "drain"        # no saving of data
+      file_name: "modules/spectrum"
+      fkt_name: "rb_to_spectrum"
       num_process: 1
       RB_assign:
            RB_2: "read"
@@ -85,16 +85,11 @@ Functions:
 
 # --- the following functions are optioal 	   
 
-  - Fkt_4:
+  - Fkt_5:
       file_name: "modules/plot_waveform"
       fkt_name: "plot_waveform"
       num_process: 1
       RB_assign:
            RB_1: "observe"
-  - Fkt_5:
-      file_name: "modules/plot_histogram"
-      fkt_name: "plot_histogram"
-      num_process: 1
-      RB_assign:
-           RB_2: "observe"
+
 

@@ -56,32 +56,6 @@ def find_first_value(arr, i, min_value,direction="left"):
     return valid_indices[-1]
 
 
-def pulse_height_pavel(input_data, pulse_height_pavel_config):
-    peaks, peaks_prop = tag_peaks(input_data, pulse_height_pavel_config['peak_config'])
-    for key in input_data.dtype.names:
-        #if len(peaks[key])==0:
-        #    return None, None
-        heights = []
-        #start_positions = []
-        for peak, left_ips in zip(peaks[key], peaks_prop[key]['left_ips']):
-            if pulse_height_pavel_config['baseline_mode'][key] == "gradient":
-                start_position = find_first_value(np.gradient(input_data[key]), int(left_ips), pulse_height_pavel_config['baseline_value'][key],'left')
-                if start_position != -1:
-                    heights.append(int(input_data[key][peak] - input_data[key][start_position]))
-                    #start_positions.append(start_position)
-                else: 
-                    return None, None
-            elif pulse_height_pavel_config['baseline_mode'][key] == "constant":
-                heights.append(int(input_data[key][peak]-pulse_height_pavel_config['baseline_value'][key]))
-            else:
-                print("No configuration for pulse_height_pavel[baseline_mode] given")
-        peaks_prop[key]['height'] = heights
-        #peaks_prop[key]['start'] = start_positions
-    
-    return peaks, peaks_prop
-        
-# <--- End Pulse height detection like Pavel
-
 def pha_jump(input_data, config):
     # read config
     peak_config = config['peak_config'] # peak_config can be copied from tag_peaks
@@ -90,18 +64,24 @@ def pha_jump(input_data, config):
     peaks, peaks_prop = tag_peaks(input_data, peak_config)
     for key in input_data.dtype.names:
         jumps = []
-        for index in range(len(peaks[key])):
+        no_start = []
+        #for index in range(len(peaks[key])):
+        for index in range(min(len(peaks[key]),1)):
             peak = peaks[key][index]
             left_ips = peaks_prop[key]['left_ips'][index]
             start_position = find_first_value(np.gradient(input_data[key]), int(left_ips), gradient_min,'left')
             if start_position != -1:
                 jumps.append(int(input_data[key][peak] - input_data[key][start_position]))
             else:
-                # ToDo Error Handeling peak löschen oder None zurückgeben
-                jumps.append(None)
-                peaks[key][index] = None
-                print("No start position found in pha_jump. If this occours often, consider changing the gradient_min value or the error handeling.")
+                no_start.append(index)
+                jumps.append(0)
         peaks_prop[key]['jump'] = jumps
+        
+        # remove peaks that have no start
+        peaks[key] = np.delete(peaks[key], no_start)
+        for prop in peaks_prop[key]:
+            peaks_prop[key][prop] = np.delete(peaks_prop[key][prop], no_start)
+        
     return peaks, peaks_prop
 
 def pha_integral(input_data, config):
@@ -127,36 +107,36 @@ def pha_matched(input_data, config):
     # get maximum of convolution
     max_conv = np.max(np.convolve(input_data['ch1'], average_pulse, mode='valid'))
     return max_conv if max_conv > minimum_overlap else None
-            
 
 
-def pulse_height_integral(input_data, pulse_height_integral_config):
-    peaks, peaks_prop = tag_peaks(input_data, pulse_height_integral_config['peak_config'])
+height=None
+threshold=None
+distance=None
+prominence=10
+width=None
+wlen=None
+rel_height=0.5
+plateau_size=None
+
+gradient_min=0
+
+constant_length = 50
+constant_max_gradient = 1
+
+def first_jump(input_data, config):
     for key in input_data.dtype.names:
-        heights = []
-        for peak, left_ips, right_ips in zip(peaks[key], peaks_prop[key]['left_ips'], peaks_prop[key]['right_ips']):
-            if pulse_height_integral_config['start_stop_mode'][key] == "gradient":
-                start_position = find_first_value(np.gradient(input_data[key]), int(left_ips), pulse_height_integral_config['baseline_value'][key],'left')
-                stop_position = find_first_value(np.gradient(input_data[key]), int(right_ips), pulse_height_integral_config['baseline_value'][key],'right')
-            elif pulse_height_integral_config['start_stop_mode'][key] == "constant":
-                start_position = find_first_value(input_data[key], int(left_ips), pulse_height_integral_config['baseline_value'][key],'left')
-                stop_position = find_first_value(input_data[key], peak, pulse_height_integral_config['baseline_value'][key],'right')
-            elif pulse_height_integral_config['start_stop_mode'][key] == "left_ips_to_peak":
-                start_position = int(left_ips)
-                stop_position = peak
-            elif pulse_height_integral_config['start_stop_mode'][key] == "left_ips_to_right_ips":
-                start_position = int(left_ips)
-                stop_position = int(right_ips)
-            elif pulse_height_integral_config['start_stop_mode'][key] == "left_gradient_to_peak":
-                start_position = find_first_value(np.gradient(input_data[key]), int(left_ips), pulse_height_integral_config['baseline_value'][key],'left')
-                stop_position = peak
-            else:
-                print("No configuration for pulse_height_pavel[baseline_mode] given")
-            if start_position != -1 and stop_position != -1:
-                heights.append(np.trapz(input_data[key][start_position:stop_position]-input_data[key][start_position])/(stop_position-start_position))
-            else: 
-                return None, None
-
-        peaks_prop[key]['height'] = heights
-
-    return peaks, peaks_prop
+        data = input_data[key]
+        invalid = []
+        peaks, peaks_prop = signal.find_peaks(data, height, threshold, distance, prominence, width, wlen, rel_height, plateau_size)
+        for i in range(len(peaks)):
+            start = find_first_value(np.gradient(data), peaks[i], gradient_min,'left')
+            if start == -1:
+                invalid.append(i)
+            if np.abs(data[start]-data[start-constant_length])/constant_length > constant_max_gradient:
+                invalid.append(i)
+        peaks = np.delete(peaks, invalid)
+        for prop in peaks_prop:
+            peaks_prop[prop] = np.delete(peaks_prop[prop], invalid)
+        return peaks, peaks_prop
+            
+    

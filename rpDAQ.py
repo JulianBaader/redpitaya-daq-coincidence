@@ -102,6 +102,7 @@ class rpControl:
         self.socket.settimeout(5)
         
         self.setup_redpitaya()
+        self.setup_daq()
         
         self.stop_daq = False
         signal.signal(signal.SIGINT, self.interrupt_handler)
@@ -214,21 +215,22 @@ class rpControl:
     
     
     def setup_mimoCoRB(self, config_dict=None, sink_list=None, **rb_info):
-        self.rbPut = buffer_control.rbPut(self, sink_list=None, config_dict=None, ufunc=None, **rb_info)
+        self.rbPut = buffer_control.rbPut(sink_list=sink_list, config_dict=config_dict, ufunc=None, **rb_info)
         
         
         
     def get_osc_mimoCoRB(self):
         if self.rbPut.sink._paused.is_set():
-            timestamp = time.time_ns()
-            buffer = self.rbPut.sink.get_new_buffer()
-            view = buffer.view(np.uint8)
-            self.osc_to_view(view)
-            deadtime_fraction = 0 # TODO
-            self.rbPut.sink.set_metadata(self.event_count, timestamp, deadtime_fraction)
-            return True
-        else:
+            time.sleep(0.1)
             return False
+        timestamp = time.time_ns()
+        buffer = self.rbPut.sink.get_new_buffer()
+        view = buffer.view(np.uint8)
+        self.osc_to_view(view)
+        deadtime_fraction = .1 # TODO
+        self.rbPut.sink.set_metadata(self.event_count, timestamp, deadtime_fraction)
+        return True
+
         
     def get_osc_npy(self):
         self.osc_to_view(self.osc_view)
