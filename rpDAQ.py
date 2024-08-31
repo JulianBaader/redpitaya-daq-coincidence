@@ -98,7 +98,10 @@ class rpControl:
 
         # socket
         self.socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
-        self.socket.connect((self.ip, PORT))
+        try:
+            self.socket.connect((self.ip, PORT))
+        except ConnectionRefusedError:
+            sys.exit("Connection refused. Check if the RedPitaya is running the daq application and the IP is correct")
         self.socket.settimeout(5)
         
         self.setup_redpitaya()
@@ -120,7 +123,6 @@ class rpControl:
         if self.start_generator:
             self.setup_generator()
         self.setup_oscilloscope()
-        print("Setup done")
         self.start_first_osc()
             
     def setup_general(self):
@@ -371,6 +373,10 @@ class rpControl:
     
 def rp_mimocorb(source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
     config_dict['acquisition_mode'] = 'mimoCoRB'
+    channel_per_slot = sink_list[0]['values_per_slot']
+    if config_dict['total_samples'] != channel_per_slot:
+        print("Warning: total_samples is not equal to channel_per_slot. Setting total_samples to channel_per_slot")
+        config_dict['total_samples'] = channel_per_slot
     control = rpControl(config_dict)
     control.setup_mimoCoRB(config_dict=config_dict, sink_list=sink_list, **rb_info)
     control.run_mimo()

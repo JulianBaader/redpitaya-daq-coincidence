@@ -1,0 +1,5 @@
+filename: "coincidence_spectrum"
+#axis: [key, min, max]
+x: ["height_trigger", 3000, 4095]
+y: ["height_coincidence", 3000, 4095]
+z: ["DeltaT", 0, 125] # DeltaT in samples max should be same as window #TODO import from coincidence-config.yaml

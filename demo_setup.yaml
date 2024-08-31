@@ -34,8 +34,16 @@ RingBuffer:
       channel_per_slot: 1
       data_type:
           1: ['height', "int16"]
-  
+
   - RB_3:
+      # raw input data of the coincidence pulses
+      number_of_slots: 100
+      channel_per_slot: 1000
+      data_type:
+          1: ['ch1', "int16"]
+          2: ['ch2', "int16"]
+  
+  - RB_4:
       # pulse height of the coinciding pulses
       number_of_slots: 100
       channel_per_slot: 1
@@ -52,10 +60,10 @@ Functions:
 
   - Fkt_1:
     # data from RedPitaya
-       #file_name: "rpDAQ"
-       #fkt_name: "rp_mimocorb"
-       file_name: "modules/file_source"
-       fkt_name: "tar_parquet_source"
+       file_name: "rpDAQ"
+       fkt_name: "rp_mimocorb"
+    #    file_name: "modules/file_source"
+    #    fkt_name: "tar_parquet_source"
        config_file: "config/rp-config.yaml"
        num_process: 1
        RB_assign:
@@ -63,7 +71,7 @@ Functions:
 
   - Fkt_2:
        file_name: "modules/coincidence"
-       fkt_name: "coincidence"
+       fkt_name: "pha_and_split_coincidence"
        config_file: "config/coincidence-config.yaml"
        num_process: 1
        RB_assign:
@@ -78,27 +86,49 @@ Functions:
       num_process: 1
       RB_assign:
            RB_2: "read"
+
   - Fkt_4:
-      file_name: "modules/exporters"
-      #fkt_name: "save_to_txt" # save data to text
-      fkt_name: "drain"        # no saving of data
+      file_name: "modules/coincidence"
+      fkt_name: "coincidence_analysis"
+      config_file: "config/coincidence-config.yaml"
       num_process: 1
       RB_assign:
            RB_3: "read"
+           RB_4: "write"
+
+  - Fkt_5:
+      file_name: "modules/coincidence_spectrum"
+      fkt_name: "rb_to_coincidence_spectrum"
+      config_file: "config/coincidence_spectrum-config.yaml"
+      num_process: 1
+      RB_assign:
+           RB_4: "read"
 
 # --- the following functions are optioal 	   
 
-  - Fkt_5:
+  - Fkt_6:
       file_name: "modules/observer_plotter"
       fkt_name: "observer_plotter"
       num_process: 1
       RB_assign:
            RB_1: "observe"
-  - Fkt_6:
+  - Fkt_7:
       file_name: "modules/spectrum"
       fkt_name: "plot_spectrum"
       num_process: 1
       config_file: "config/spectrum-config.yaml"
 
+  - Fkt_8:
+      file_name: "modules/observer_plotter"
+      fkt_name: "observer_plotter"
+      num_process: 1
+      RB_assign:
+           RB_3: "observe"
+
+  - Fkt_9:
+      file_name: "modules/coincidence_spectrum"
+      fkt_name: "plot_coincidence_spectrum"
+      num_process: 1
+      config_file: "config/coincidence_spectrum-config.yaml"
 
 
