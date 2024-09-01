@@ -1,9 +1,13 @@
+# should be the same as the trigger source of the redpitaya
 trigger_channel: 'ch1'
 coincidence_channel: 'ch2'
 
+# requirements for coincidence
 offset: 0 # offset (of the trigger channel) in samples
 window: 125 # window in samples (with rate 4 125 samples = 4us)
 
+
+# peak finding configuration
 peak_config_trigger:
   prominence: 100
   width: 10
@@ -18,3 +22,22 @@ peak_config_coincidence:
   gradient_min: 0
   fluctuation: 5
   constant_length: 10
+
+spectrum_update_interval: 5
+osci_update_interval: .5
+
+# spectrum configuration
+normal_spectrum:
+  filename: "triggerchannel_spectrum"
+  key: 'height'
+  min: 0
+  max: 4095
+  nbins: 4096
+
+
+
+# coincidence spectrum configuration
+coincidence_spectrum:
+  filename: "coincidence_spectrum"
+  x: ["height_trigger", 3000, 4095]
+  y: ["height_coincidence", 3000, 4095]

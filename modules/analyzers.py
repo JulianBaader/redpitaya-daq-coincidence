@@ -2,24 +2,6 @@ from scipy import signal
 import numpy as np
 
 
-# def tag_peaks(input_data, peak_config):
-#     peaks = {}
-#     peaks_prop = {}
-#     for key in input_data.dtype.names:
-#         peaks[key], peaks_prop[key] = signal.find_peaks(
-#             input_data[key], prominence=peak_config['prominence'], distance=peak_config['distance'], width=peak_config['width']
-#         )
-#         # remove peaks that clip
-#         clipped = []
-#         for i in range(len(peaks[key])):
-#             if input_data[key][peaks[key][i]] >= peak_config['clip_value']:
-#                 clipped.append(i)
-#         peaks[key] = np.delete(peaks[key], clipped)
-#         for prop in peaks_prop[key]:
-#             peaks_prop[key][prop] = np.delete(peaks_prop[key][prop], clipped)
-                
-                
-#     return peaks, peaks_prop
 
 # Pulse height detection like Pavels algorhythm
 def find_first_value(arr, i, min_value,direction="left"):
@@ -104,60 +86,3 @@ def pha(osc_data, peak_config):
         heights = osc_data[peaks] - osc_data[start]
     return peaks, heights
 
-
-# def pha_jump(input_data, config):
-#     # read config
-#     peak_config = config['peak_config'] # peak_config can be copied from tag_peaks
-#     gradient_min = config['gradient_min']
-    
-#     peaks, peaks_prop = tag_peaks(input_data, peak_config)
-#     for key in input_data.dtype.names:
-#         jumps = []
-#         no_start = []
-#         #for index in range(len(peaks[key])):
-#         for index in range(min(len(peaks[key]),1)):
-#             peak = peaks[key][index]
-#             left_ips = peaks_prop[key]['left_ips'][index]
-#             start_position = find_first_value(np.gradient(input_data[key]), int(left_ips), gradient_min,'left')
-#             if start_position != -1:
-#                 jumps.append(int(input_data[key][peak] - input_data[key][start_position]))
-#             else:
-#                 no_start.append(index)
-#                 jumps.append(0)
-#         peaks_prop[key]['jump'] = jumps
-        
-#         # remove peaks that have no start
-#         peaks[key] = np.delete(peaks[key], no_start)
-#         for prop in peaks_prop[key]:
-#             peaks_prop[key][prop] = np.delete(peaks_prop[key][prop], no_start)
-#             if len(peaks[key]) != len(peaks_prop[key][prop]):
-#                 print("Error in pha_jump aber wttttffff")
-#     return peaks, peaks_prop
-
-# def pha_integral(input_data, config):
-#     # read config
-#     peak_config = config['peak_config'] # peak_config can be copied from tag_peaks
-    
-#     peaks, peaks_prop = tag_peaks(input_data, peak_config)
-#     for key in input_data.dtype.names:
-#         integrals = []
-#         for peak, left_ips, right_ips in zip(peaks[key], peaks_prop[key]['left_ips'], peaks_prop[key]['right_ips']):
-#             integrals.append(np.trapezoid(input_data[key][int(left_ips):int(right_ips)]))
-#         peaks_prop[key]['integral'] = integrals
-#     return peaks, peaks_prop
-
-# def pha_matched(input_data, config):
-#     # Doesnt work for multiple channels
-#     # read config
-#     minimum_overlap = config['minimum_overlap']
-#     file_name = config['file_name']
-#     # read average pulse
-#     average_pulse = np.loadtxt(file_name)
-    
-#     # get maximum of convolution
-#     max_conv = np.max(np.convolve(input_data['ch1'], average_pulse, mode='valid'))
-#     return max_conv if max_conv > minimum_overlap else None
-
-
-    
-    

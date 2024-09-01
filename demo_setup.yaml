@@ -60,10 +60,10 @@ Functions:
 
   - Fkt_1:
     # data from RedPitaya
-       file_name: "rpDAQ"
-       fkt_name: "rp_mimocorb"
-    #    file_name: "modules/file_source"
-    #    fkt_name: "tar_parquet_source"
+    #    file_name: "rpDAQ"
+    #    fkt_name: "rp_mimocorb"
+       file_name: "modules/file_source"
+       fkt_name: "tar_parquet_source"
        config_file: "config/rp-config.yaml"
        num_process: 1
        RB_assign:
@@ -82,7 +82,7 @@ Functions:
   - Fkt_3:
       file_name: "modules/spectrum"
       fkt_name: "rb_to_spectrum"
-      config_file: "config/spectrum-config.yaml"
+      config_file: "config/coincidence-config.yaml"
       num_process: 1
       RB_assign:
            RB_2: "read"
@@ -99,7 +99,7 @@ Functions:
   - Fkt_5:
       file_name: "modules/coincidence_spectrum"
       fkt_name: "rb_to_coincidence_spectrum"
-      config_file: "config/coincidence_spectrum-config.yaml"
+      config_file: "config/coincidence-config.yaml"
       num_process: 1
       RB_assign:
            RB_4: "read"
@@ -107,28 +107,13 @@ Functions:
 # --- the following functions are optioal 	   
 
   - Fkt_6:
-      file_name: "modules/observer_plotter"
-      fkt_name: "observer_plotter"
+      file_name: "modules/gui"
+      fkt_name: "real_time_plot"
+      config_file: "config/coincidence-config.yaml"
       num_process: 1
       RB_assign:
            RB_1: "observe"
-  - Fkt_7:
-      file_name: "modules/spectrum"
-      fkt_name: "plot_spectrum"
-      num_process: 1
-      config_file: "config/spectrum-config.yaml"
-
-  - Fkt_8:
-      file_name: "modules/observer_plotter"
-      fkt_name: "observer_plotter"
-      num_process: 1
-      RB_assign:
            RB_3: "observe"
 
-  - Fkt_9:
-      file_name: "modules/coincidence_spectrum"
-      fkt_name: "plot_coincidence_spectrum"
-      num_process: 1
-      config_file: "config/coincidence_spectrum-config.yaml"
 
 
