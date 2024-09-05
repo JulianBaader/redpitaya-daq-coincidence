@@ -17,6 +17,8 @@ from mimocorb import buffer_control
 
 from npy_append_array import NpyAppendArray
 
+import requests
+
 
 
 command_dictionary = {
@@ -98,10 +100,21 @@ class rpControl:
 
         # socket
         self.socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+
         try:
             self.socket.connect((self.ip, PORT))
         except ConnectionRefusedError:
-            sys.exit("Connection refused. Check if the RedPitaya is running the daq application and the IP is correct")
+            print("Restarting DAQ application")
+            requests.get("http://" + self.ip)
+            requests.get("http://" + self.ip + "/daq")
+            try:
+                self.socket.connect((self.ip, PORT))
+            except ConnectionRefusedError:
+                raise ConnectionRefusedError("Check if the RedPitaya is running")
+            
+        except socket.gaierror:
+            raise socket.gaierror("Check if the RedPitaya is running and the IP address is correct")
+        
         self.socket.settimeout(5)
         
         self.setup_redpitaya()
