@@ -20,7 +20,7 @@ for mode in modes:
     elif mode == 'gauss':
         s = norm.pdf(x,LEN/2 , 100)
         s = s / np.max(s) * 1000
-        s = s.astype(int)
+        s = s.astype(np.uint32)
         
     plt.plot(s)
     plt.title(mode)
