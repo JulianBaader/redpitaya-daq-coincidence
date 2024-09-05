@@ -70,7 +70,12 @@ PORT = 1001
 
 PLOT_SPECTRUM = False
 
-
+CUT_OFF = 100
+"""
+For some reason the ca. last 100 samples of the oscilloscope are broken.
+This is a workaround to cut them off. 
+The redpitaya will send total_samples + CUT_OFF samples but the last CUT_OFF samples will be received into void.
+"""
         
 class rpControl:
     """
@@ -88,6 +93,11 @@ class rpControl:
         # drain buffer
         self.drain_buffer = np.zeros(2 * self.total_samples, np.int16)
         self.drain_view = self.drain_buffer.view(np.uint8)
+        
+        # cut off buffer
+        self.cutoff_buffer = np.zeros(2 * CUT_OFF, np.int16)
+        self.cutoff_view = self.cutoff_buffer.view(np.uint8)
+        self.CUTOFF_SIZE = self.cutoff_view.size
         
         # counters
         self.event_count = 0
@@ -149,7 +159,7 @@ class rpControl:
         self.command(14, 0, TRIGGER_SLOPES[self.trigger_slope])
         self.command(16, 0, self.trigger_level)
         self.command(17, 0, self.pretrigger_samples)
-        self.command(18, 0, self.total_samples)
+        self.command(18, 0, self.total_samples + CUT_OFF)
             
     def setup_generator(self):
         self.spectrum = np.load(self.spectrum_file)
@@ -188,7 +198,10 @@ class rpControl:
     def osc_to_view(self, view):
         bytes_received = 0
         while bytes_received < self.OSC_SIZE:
-            bytes_received += self.socket.recv_into(view, self.OSC_SIZE - bytes_received)
+            bytes_received += self.socket.recv_into(view[bytes_received:], self.OSC_SIZE - bytes_received)
+        bytes_received = 0
+        while bytes_received < self.CUTOFF_SIZE:
+            bytes_received += self.socket.recv_into(self.cutoff_view[bytes_received:], self.CUTOFF_SIZE - bytes_received)
         self.event_count += 1
     
     def osc_to_drain(self):
