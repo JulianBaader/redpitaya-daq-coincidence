@@ -1,0 +1,6 @@
+filename: "timing_spectrum"
+update_interval: 5
+key: 'DeltaT'
+min: -1000
+max: 1000
+nbins: 2000

@@ -386,10 +386,30 @@ class rpControl:
     
 def rp_mimocorb(source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
     config_dict['acquisition_mode'] = 'mimoCoRB'
+    
+    # overwrite total_samples if not equal to channel_per_slot
     channel_per_slot = sink_list[0]['values_per_slot']
     if config_dict['total_samples'] != channel_per_slot:
         print("Warning: total_samples is not equal to channel_per_slot. Setting total_samples to channel_per_slot")
         config_dict['total_samples'] = channel_per_slot
+    
+    # set trigger channel according to setup
+    sink_dtypes = sink_list[0]['dtype']
+    ch1 = sink_dtypes[0][0]
+    ch2 = sink_dtypes[1][0]
+    if ch1 == 'trigger_channel' and ch2 != 'trigger_channel':
+        trigger_channel = 1
+    elif ch2 == 'trigger_channel' and ch1 != 'trigger_channel':
+        trigger_channel = 2
+    # this check is not required as the numpy array cant have the same name twice
+    # elif ch1 == 'trigger_channel' and ch2 == 'trigger_channel':
+    #     raise ValueError("Both channels cannot be trigger channels")
+    else:
+        raise ValueError("No trigger channel found, one of the channels must be named 'trigger_channel'")
+    config_dict['trigger_channel'] = trigger_channel
+    
+    
+    
     control = rpControl(config_dict)
     control.setup_mimoCoRB(config_dict=config_dict, sink_list=sink_list, **rb_info)
     control.run_mimo()
