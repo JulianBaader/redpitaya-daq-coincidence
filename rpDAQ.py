@@ -238,6 +238,9 @@ class rpControl:
         self.start = time.time()
         while self.rbPut.sink._active.is_set() and not self.stop_daq:
             self.execute_loop()
+        self.rbPut(None, None) # Send done signal
+        
+        
                 
         
     

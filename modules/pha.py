@@ -26,6 +26,8 @@ def pha_single(source_list=None, sink_list=None, observe_list=None, config_dict=
     entry_out = np.zeros((1,), dtype=dtype)
     
     def main(input_data):
+        if input_data is None:
+            return None
         osc = input_data['trigger_channel']
         peaks, heights = ana.pha(osc, peak_config)
         if len(peaks) == 0:
