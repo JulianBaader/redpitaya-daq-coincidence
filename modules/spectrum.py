@@ -35,8 +35,9 @@ def rb_to_spectrum(source_list=None, sink_list=None, observe_list=None, config_d
         if d is not None:  # new data received ------
             val = d[0][key][0] # first index is for [data, metadata], second for key, third for first value
             if val is not None:
-                if min <= val <= max:
-                    hist[int((val - min) * factor)] += 1
+                ind = int((val - min) * factor)
+                if 0 <= ind < nbins:
+                    hist[ind] += 1
                 else:
                     discarded.append(val)
         else: # last data received -> finish execution
