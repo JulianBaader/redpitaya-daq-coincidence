@@ -8,29 +8,13 @@ window: 125 # window in samples (with rate 4 125 samples = 4us)
 
 
 # peak finding configuration
-peak_config_trigger:
-  prominence: 100
-  width: 10
-  clip_value: 4095
-  gradient_min: 0
-  fluctuation: 5
-  constant_length: 10
-peak_config_coincidence:
-  prominence: 200
-  width: 10
-  clip_value: 4095
-  gradient_min: 0
-  fluctuation: 5
-  constant_length: 10
-
-
 peak_config1:
   prominence: 200
   width: 10
   clip_value: 4095
   gradient_min: 0
-  fluctuation: .5
-  constant_length: 75
+  fluctuation: 10
+  constant_length: 50
 
 peak_config2:
   prominence: 200
@@ -39,11 +23,6 @@ peak_config2:
   gradient_min: 0
   fluctuation: 5
   constant_length: 10
-
-spectrum_update_interval: 5
-osci_update_interval: .5
-
-
 
 
 # coincidence spectrum configuration

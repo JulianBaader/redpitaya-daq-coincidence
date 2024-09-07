@@ -1,0 +1,7 @@
+filename: "deltaT_spectrum"
+update_interval: 5
+osci_update_interval: .1
+key: 'deltaT'
+min: -100
+max: 1000
+nbins: 1100

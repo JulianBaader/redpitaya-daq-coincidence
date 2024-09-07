@@ -48,6 +48,7 @@ def tar_parquet_source(source_list=None, sink_list=None, observe_list=None, conf
     number_of_channels = len(sink_dict["dtype"])
     number_of_values = sink_dict["values_per_slot"]
     channel_names = [sink_dict["dtype"][i][0] for i in range(number_of_channels)]
+    channel_names = ['ch1', 'ch2']
     # consistency check
     if "number_of_samples" not in config_dict:
         pass
