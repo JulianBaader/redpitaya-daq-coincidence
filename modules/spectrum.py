@@ -1,133 +1,179 @@
+"""
+rb_to_spectrum is used to histogram data from a buffer and save it to file(s).
+plot can be used to plot the histogram data in real-time.
+If plot is provided with an observer, the observer data will be plotted in the same figure as an oscilloscope.
+
+Intended usecase would be
+RB_i contains raw oscilloscope data
+RB_i+1 contains an analyzed metric like, pulse height, pulse width, etc.
+The RB_i+1 buffer must have a large enough number_of_slots as reading will halt regularly to save the file.
+-> TODO copy data to a buffer and handle saving in a different thread?
+
+In this case, it might be interesting to add a visualization of the analyzed metric to the oscilloscope data.
+But this has to be added on a case-by-case basis. -> TODO provide easy interface for this
+
+It is recommended to use the same config files for both functions containing:
+
+update_interval -> time between updates of the histogram
+filename -> name of the file to save the histogram data (will be appended with the key)
+spectrum:
+    key: min, max, nbins -> key and range of the histogram for each key to be histogrammed
+
+if oscilloscope is used:
+update_interval_osc -> time between updates of the oscilloscope
+osc_range -> range of the oscilloscope will be -osc_range to osc_range
+"""
+MIN = 0
+MAX = 1
+NBINS = 2
+
 from mimocorb.buffer_control import rbExport, rbObserver
 
 import numpy as np
+import matplotlib.pyplot as plt
 import time
 import os
-import matplotlib.pyplot as plt
-
-ADC_LIMIT = 2**12
 
 
 def rb_to_spectrum(source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
+    # get information from source_list
     if len(source_list) > 1:
         print("!!! More than one source presently not foreseen!!")
-    if source_list[0]['values_per_slot'] != 1:
-        print("!!! Only one value per slot presently foreseen!!")
+    available_keys = [dtype[0] for dtype in source_list[0]['dtype']]
+    exporter = rbExport(source_list=source_list, config_dict=config_dict, **rb_info)
+
+    # get information from config_dict
 
     update_interval = config_dict['update_interval']
     filename = config_dict['directory_prefix'] + config_dict['filename']
-    
-    key = config_dict['key']
-    min = config_dict['min']
-    max = config_dict['max']
-    nbins = config_dict['nbins']
-    factor = nbins / (max - min)
-    hist = np.zeros(nbins)
-    discarded = []
-    
-    
-    exp = rbExport(source_list=source_list, config_dict=config_dict, **rb_info)
-    
-    
+    keys = list(config_dict['spectrum'].keys())
+
+    for key in keys:
+        if key not in available_keys:
+            print(f"!!! Key {key} not available in source data and will be ignored!!")
+            keys.remove(key)
+
+    min_vals = {}
+    max_vals = {}
+    nbins = {}
+    factors = {}
+    hists = {}
+    discardeds = {}
+    for key in keys:
+        min_vals[key] = config_dict['spectrum'][key][MIN]
+        max_vals[key] = config_dict['spectrum'][key][MAX]
+        nbins[key] = config_dict['spectrum'][key][NBINS]
+        factors[key] = (max_vals[key] - min_vals[key]) / nbins[key]
+        hists[key] = np.zeros(nbins[key])
+        discardeds[key] = []
+
     last_update_time = time.time()
+
     while True:
-        d = next(exp(), None)  # this blocks until new data provided !
-        if d is not None:  # new data received ------
-            val = d[0][key][0] # first index is for [data, metadata], second for key, third for first value
-            if val is not None:
-                ind = int((val - min) * factor)
-                if 0 <= ind < nbins:
-                    hist[ind] += 1
-                else:
-                    discarded.append(val)
-        else: # last data received -> finish execution
+        d = next(exporter(), None)  # this blocks until new data provided !
+        if d is None:  # last data received -> finish execution
+            save_spectrum(hists, filename)
+            save_spectrum(discardeds, filename + '_discarded_')
             break
+        data, metadata = d
+        for key in keys:
+            vals = data[key]
+            for val in vals:
+                if val is None:
+                    continue
+                index = int((val - min_vals[key]) * factors[key])
+                if 0 <= index < nbins[key]:
+                    hists[key][int((val - min_vals[key]) * factors[key])] += 1
+                else:
+                    discardeds[key].append(val)
+
         if time.time() - last_update_time > update_interval:
             last_update_time = time.time()
-            np.save(filename, hist)
-    
-    #print('Discarded values:', discarded) #TODO if interested in discarded values they may be saved to a file
-    np.save(filename, hist)
-    
-    
+            save_spectrum(hists, filename)
+
+
+def save_spectrum(hists, filename):
+    for key, hist in hists.items():
+        np.save(filename + key, hist)
+
+
 def plot(source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
+    # get information from observe_list
     show_osc = observe_list is not None
     if len(observe_list) > 1:
         print("!!! More than one observe presently not foreseen!!")
-    
+    if show_osc:
+        keys_osc = [dtype[0] for dtype in observe_list[0]['dtype']]
+        channels = observe_list[0]['values_per_slot']
+        osc_observer = rbObserver(observe_list=observe_list, config_dict=config_dict, **rb_info)
+
+    # get information from config_dict
     update_interval = config_dict['update_interval']
-    
-    filename = config_dict['directory_prefix'] + config_dict['filename'] + '.npy'
-    
-    fig = plt.figure(num='Real Time Plot')
-    
+    filename = config_dict['directory_prefix'] + config_dict['filename']
+    keys = config_dict['spectrum'].keys()
+    spectrum_config = config_dict['spectrum']
+
+    if show_osc:
+        update_interval_osc = config_dict['update_interval_osc']
+        osc_range = config_dict['osc_range']
+
+    fig = plt.figure()
+
+    # initialize oscilloscope
+    if show_osc:
+        ax_osci = fig.add_subplot(211)
+        ax_osci.set_title('Oscilloscope')
+        x = np.arange(0, channels)
+        y = np.zeros(channels)
+        lines_osc = {}
+        for key in keys_osc:
+            (lines_osc[key],) = ax_osci.plot(x, y, label=key)
+        ax_osci.set_xlim(0, channels)
+        ax_osci.set_ylim(-osc_range, osc_range)
+
+    # initialize spectrum
     if show_osc:
         ax_spectrum = fig.add_subplot(212)
     else:
         ax_spectrum = fig.add_subplot(111)
+
     ax_spectrum.set_title('Spectrum')
-    spectrum_x = np.linspace(config_dict['min'], config_dict['max'], config_dict['nbins'])
-    spectrum_y = np.zeros(config_dict['nbins'])
-    spectrum_line, = ax_spectrum.plot(spectrum_x, spectrum_y)
-    ax_spectrum.set_xlim(config_dict['min'], config_dict['max'])
-    # plot text showing the total number of events
-    text = ax_spectrum.text(0.5, 0.9, 'Total events: 0', horizontalalignment='center', verticalalignment='center', transform=ax_spectrum.transAxes)
-    
-    
-    
-    if show_osc:
-        key_ch1 = observe_list[0]['dtype'][0][0]
-        key_ch2 = observe_list[0]['dtype'][1][0]
-        osci_update_interval = config_dict['osci_update_interval']
-        total_samples = observe_list[0]['values_per_slot']
-        osc_observer = rbObserver(observe_list=observe_list, config_dict=config_dict, **rb_info)
-        ax_osci = fig.add_subplot(211)
-        ax_osci.set_title('Oscilloscope')
-        x = np.arange(total_samples)
-        y1 = np.zeros(total_samples)
-        y2 = np.zeros(total_samples)
-        osc_line1, = ax_osci.plot(x, y1)
-        osc_line2, = ax_osci.plot(x, y2)
-        ax_osci.set_xlim(0, total_samples)
-        ax_osci.set_ylim(-ADC_LIMIT, ADC_LIMIT)
-        last_osci_update_time = time.time()
-        
-    
-        
+    xs = {}
+    ys = {}
+    lines = {}
+    for key in keys:
+        xs[key] = np.linspace(spectrum_config[key][MIN], spectrum_config[key][MAX], spectrum_config[key][NBINS])
+        ys[key] = np.zeros(spectrum_config[key][NBINS])
+        lines[key] = ax_spectrum.plot(xs[key], ys[key], label=key)
+
+    plt.legend()
     plt.ion()
     plt.show()
     
-    
     last_update_time = time.time()
-    
+    last_update_time_osc = time.time()
 
-    
     while True:
-        if time.time() - last_update_time > update_interval and os.path.exists(filename):
-            last_update_time = time.time()
-            hist = np.load(filename)
-            spectrum_line.set_ydata(hist)
-            text.set_text('Total events: ' + str(np.sum(hist)))
+        if time.time() - last_update_time > update_interval:
+            # update spectrum
+            for key in keys:
+                if os.path.exists(filename + key + '.npy'):
+                    try:
+                        ys[key] = np.load(filename + key + '.npy')
+                        lines[key][0].set_ydata(ys[key])
+                    except EOFError as e:
+                        print(f"EOFErroer: {e}")
             ax_spectrum.relim()
             ax_spectrum.autoscale_view()
             fig.canvas.draw()
-        if show_osc and time.time() - last_osci_update_time > osci_update_interval:
-            last_osci_update_time = time.time()
+        if show_osc and time.time() - last_update_time_osc > update_interval_osc:
+            # update oscilloscope
             data = next(osc_observer(), None)
-            if data is not None:
-                osc_line1.set_ydata(data[0][key_ch1])
-                osc_line2.set_ydata(data[0][key_ch2])  
-                fig.canvas.draw() 
-            else:
-                break 
+            if data is None:
+                break
+            for key, line in lines_osc.items():
+                line.set_ydata(data[0][key])
+            fig.canvas.draw()
+
         fig.canvas.flush_events()
-        time.sleep(0.03) # to avoid 100% CPU usage but still update at 30FPS
-        
-        
-        
-    
-    
-    
-    
-    
-    
+        time.sleep(0.03)  # to avoid too much CPU usage but still provide 30FPS

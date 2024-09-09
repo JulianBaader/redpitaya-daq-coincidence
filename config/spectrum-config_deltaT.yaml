@@ -1,7 +1,10 @@
 filename: "deltaT_spectrum"
 update_interval: 5
-osci_update_interval: .1
-key: 'deltaT'
-min: -100
-max: 1000
-nbins: 1100
+update_interval_osc: .1
+osc_range: 4096
+spectrum:
+  deltaT: [-1000, 1000, 2000]
+  # deltaT_1_2: [-100, 1000, 1100]
+  # deltaT_2_1: [-100, 1000, 1100]
+  # deltaT_2_2: [-100, 1000, 1100]
+

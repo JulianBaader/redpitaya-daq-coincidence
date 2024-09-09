@@ -1,7 +1,6 @@
 filename: "normal_spectrum"
 update_interval: 5
-osci_update_interval: .1
-key: 'height'
-min: 0
-max: 4095
-nbins: 4096
+update_interval_osc: .1
+osc_range: 4096
+spectrum:
+  height: [0, 4095, 4096]
