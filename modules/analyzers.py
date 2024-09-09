@@ -60,29 +60,51 @@ def pha(osc_data, peak_config):
         peaks_prop[prop] = np.delete(peaks_prop[prop], clipped)
         
 
-    # find start of peak
+    # find start of peaks
     left_ips = peaks_prop['left_ips']
-    start = []
+    starts = []
     for ips in left_ips:
-        start.append(find_first_value(np.gradient(osc_data), int(ips), gradient_min,'left'))
+        starts.append(find_first_value(np.gradient(osc_data), int(ips), gradient_min,'left'))
     # check if start is valid
     invalid = []
     for i in range(len(peaks)):
-        if start[i] == -1:
+        if starts[i] == -1:
             invalid.append(i)
             continue
-        if start[i] - constant_length < 0:
+        if starts[i] - constant_length < 0:
             invalid.append(i)
             continue
-        std = np.std(osc_data[start[i]-constant_length:start[i]])
+        std = np.std(osc_data[starts[i]-constant_length:starts[i]])
         if std > fluctuation:
             invalid.append(i)
             continue
     peaks = np.delete(peaks, invalid)
-    start = np.delete(start, invalid)
+    starts = np.delete(starts, invalid)
     if len(peaks) == 0:
-        return [], []
+        return [], [], []
     else:
-        heights = osc_data[peaks] - osc_data[start]
-    return peaks, heights
+        heights = osc_data[peaks] - osc_data[starts]
+    
+    times = []
+    invalid = []
+    # get times
+    # as zero crossing
+    # for i in range(len(peaks)):
+    #     time = find_first_value(osc_data,peaks[i],0,'right')
+    #     times.append(time)
+    #     if time == -1:
+    #         invalid.append(i)
+    
+    # position of the maximum
+    times = peaks
+    # evaluated start of the peak
+    # times = starts
+    
+    # in testing with Na22 and Co60 the position of the peak had the smalles uncertainty on the timing.
+    
+    peaks = np.delete(peaks, invalid)
+    heights = np.delete(heights, invalid)
+    times = np.delete(times, invalid)
+    
+    return peaks, heights, times
 
