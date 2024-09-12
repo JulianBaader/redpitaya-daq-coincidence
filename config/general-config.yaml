@@ -1,7 +1,37 @@
 general:
-  runtime: 600
+  runtime: 600000
   runevents: 100000
 
 drain:
   empty:
 
+save_to_txt:
+  filename: "data"
+
+save_to_df:
+  filename: "data"
+  update_interval: 5
+
+
+plot_waveform:
+  title: "waveform"
+  min_sleeptime: 0.5                # time to wait between graphics updates
+  number_of_samples: 1000
+  sample_time_ns: 32
+  analogue_offset: 0 # analogue offset in V
+  pre_trigger_samples: 100
+  channel_range: 4096                # channel range in mV
+  trigger_channel: 'trigger_channel'  # Channel name 
+  trigger_level: 500  # value in mV, take account of analogue_offset, which is added to input voltage !
+
+save_parquet:
+  filename: "discarded_osc"
+
+
+rb_to_spectrum:
+  filename: "spectrum"
+  update_interval: 5
+  update_interval_osc: .1
+  osc_range: 4096
+  spectrum:
+    height: [0, 4095, 4096]
