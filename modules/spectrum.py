@@ -163,6 +163,8 @@ def plot(source_list=None, sink_list=None, observe_list=None, config_dict=None, 
                         lines[key][0].set_ydata(ys[key])
                     except EOFError as e:
                         print(f"EOFErroer: {e}")
+                    except ValueError as e:
+                        print(f"ValueError: {e}")
             ax_spectrum.relim()
             ax_spectrum.autoscale_view()
             fig.canvas.draw()
