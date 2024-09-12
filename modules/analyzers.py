@@ -94,6 +94,9 @@ def pha(osc_data, peak_config):
     #     times.append(time)
     #     if time == -1:
     #         invalid.append(i)
+    # peaks = np.delete(peaks, invalid)
+    # heights = np.delete(heights, invalid)
+    # times = np.delete(times, invalid)
     
     # position of the maximum
     times = peaks
@@ -102,9 +105,7 @@ def pha(osc_data, peak_config):
     
     # in testing with Na22 and Co60 the position of the peak had the smalles uncertainty on the timing.
     
-    peaks = np.delete(peaks, invalid)
-    heights = np.delete(heights, invalid)
-    times = np.delete(times, invalid)
+
     
     return peaks, heights, times
 
