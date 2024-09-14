@@ -1,99 +1,81 @@
 from rbTransfer_v2 import rbTransfer_v2 as rbTransfer
 import numpy as np
-import pandas as pd
-import os, sys
-
 import analyzers as ana
 
-# first sink is for just the height of the trigger channel peaks.
-# second sink is for the height of coincidce peaks and their time difference.
-
-
-# config_dict must contain trigger_channel, coincidence_channel, offset, window, peak_config, gradient_min
-
-
-def pha_and_split_coincidence(source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
+def coincidence_sorter(source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
     if config_dict is None:
         raise ValueError("ERROR! Wrong configuration passed (in lifetime_modules: calculate_decay_time)!!")
+
+    values_per_slot = source_list[0]['values_per_slot']
+    if sink_list[0]['values_per_slot'] != values_per_slot or sink_list[1]['values_per_slot'] != values_per_slot:
+        raise ValueError("ERROR! Source and sink must have the same values_per_slot")
     
-    trigger_channel = config_dict['trigger_channel']
-    coincidence_channel = config_dict['coincidence_channel']
+    source_dtypes = source_list[0]['dtype']
+    ch1 = source_dtypes[0][0]
+    ch2 = source_dtypes[1][0]
+    if ch1 == 'trigger_channel':
+        peak_config_trig = config_dict['peak_config1']
+        peak_config_coin = config_dict['peak_config2']
+    elif ch2 == 'trigger_channel':
+        peak_config_trig = config_dict['peak_config2']
+        peak_config_coin = config_dict['peak_config1']
+    else:
+        raise ValueError("ERROR! No trigger channel found")
     
-    peak_config_trigger = config_dict['peak_config_trigger']
-    peak_config_coincidence = config_dict['peak_config_coincidence']
-    
-    window = config_dict['window']
-    offset = config_dict['offset']
-    
-    
-    if sink_list[0]['values_per_slot'] != 1:
-        raise ValueError("ERROR! Sink 0 must have channel_per_slot = 1")
-    if source_list[0]['values_per_slot'] != sink_list[1]['values_per_slot']:
-        raise ValueError("ERROR! Source and sink 1 must have the same channel_per_slot")
     
     dtype = sink_list[0]['dtype']
-    entry_out = np.zeros((1,), dtype=dtype)
-
+    #entry_out = np.zeros((1,), dtype=dtype)
     
     def main(input_data):
-        # first look at the trigger channel
-        osc_trigger = input_data[trigger_channel]
-        peaks_trigger, heights_trigger = ana.pha(osc_trigger, peak_config_trigger)
-        if len(peaks_trigger) == 0:
+        if input_data is None:
             return None
+        osc_trig = input_data['trigger_channel']
+        osc_coin = input_data['coincidence_channel']
+        peaks_trig, heights_trig, times_trig = ana.pha(osc_trig, peak_config_trig)
+        peaks_coin, heights_coin, times_coin = ana.pha(osc_coin, peak_config_coin)
+
+        if len(peaks_trig) != 1 or len(peaks_coin) != 1:
+            return [True, None]
+        else:
+            return [None, True]
         
-        # peak found in trigger channel -> save height
-        out_trigger = []
-        for i in range(len(peaks_trigger)):
-            entry_out['height'] = heights_trigger[i]
-            out_trigger.append(entry_out.copy())
-        # now check coincidence channel
-        osc_coincidence = input_data[coincidence_channel]
-        peaks_coincidence, heights_coincidence = ana.pha(osc_coincidence, peak_config_coincidence)
-        if len(peaks_coincidence) == 0:
-            return[out_trigger, None]
-        for i in range(len(peaks_trigger)):
-            for j in range(len(peaks_coincidence)):
-                if abs(peaks_trigger[i] - peaks_coincidence[j] + offset) < window:
-                    return [out_trigger, True]
-
-
-        
-
+    
     transfer = rbTransfer(source_list=source_list, sink_list=sink_list, config_dict=config_dict,
                         ufunc=main, **rb_info)
     transfer()
     
     
-def coincidence_analysis(source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
-    trigger_channel = config_dict['trigger_channel']
-    coincidence_channel = config_dict['coincidence_channel']
-    
-    peak_config_trigger = config_dict['peak_config_trigger']
-    peak_config_coincidence = config_dict['peak_config_coincidence']
-    
-    offset = config_dict['offset']
-    window = config_dict['window']
-    
-    dtype = sink_list[0]['dtype']
-    entry_out = np.zeros((1,), dtype=dtype)
+def analyzer(source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
+    if config_dict is None:
+        raise ValueError("ERROR! Wrong configuration passed (in lifetime_modules: calculate_decay_time)!!")
+    source_dtypes = source_list[0]['dtype']
+    ch1 = source_dtypes[0][0]
+    ch2 = source_dtypes[1][0]
+    if ch1 == 'trigger_channel':
+        peak_config_trig = config_dict['peak_config1']
+        peak_config_coin = config_dict['peak_config2']
+    elif ch2 == 'trigger_channel':
+        peak_config_trig = config_dict['peak_config2']
+        peak_config_coin = config_dict['peak_config1']
+    else:
+        raise ValueError("ERROR! No trigger channel found")
     
     def main(input_data):
-        osc_trigger = input_data[trigger_channel]
-        peaks_trigger, heights_trigger = ana.pha(osc_trigger, peak_config_trigger)
-        osc_coincidence = input_data[coincidence_channel]
-        peaks_coincidence, heights_coincidence = ana.pha(osc_coincidence, peak_config_coincidence)
-        out = []
-        for i in range(len(peaks_trigger)):
-            for j in range(len(peaks_coincidence)):
-                if abs(peaks_trigger[i] - peaks_coincidence[j] + offset) < window:
-                    entry_out['height_trigger'] = heights_trigger[i]
-                    entry_out['height_coincidence'] = heights_coincidence[j]
-                    entry_out['DeltaT'] = peaks_trigger[i] - peaks_coincidence[j]
-                    out.append(entry_out.copy())
-        return out
+        if input_data is None:
+            return None
+        osc_trig = input_data['trigger_channel']
+        osc_coin = input_data['coincidence_channel']
+        peaks_trig, heights_trig, times_trig = ana.pha(osc_trig, peak_config_trig)
+        peaks_coin, heights_coin, times_coin = ana.pha(osc_coin, peak_config_coin)
+
+        
+        entry_out = np.zeros((1,), dtype=sink_list[0]['dtype'])
+        
+        entry_out['height_trigger'] = heights_trig[0]
+        entry_out['height_coincidence'] = heights_coin[0]
+        entry_out['deltaT'] = times_coin[0] - times_trig[0]
+        return [entry_out]
     
     transfer = rbTransfer(source_list=source_list, sink_list=sink_list, config_dict=config_dict,
                         ufunc=main, **rb_info)
     transfer()
-        
