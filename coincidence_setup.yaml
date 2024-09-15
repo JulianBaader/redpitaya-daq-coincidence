@@ -56,7 +56,7 @@ Functions:
 
   - Fkt_3:
       file_name: "modules/coincidence"
-      fkt_name: "analyze"
+      fkt_name: "analyzer"
       config_file: "config/coincidence-config.yaml"
       num_process: 1
       RB_assign:
@@ -65,8 +65,15 @@ Functions:
 
   - Fkt_4:
       file_name: "modules/exporters"
-      fkt_name: "rb_to_df"
+      fkt_name: "save_to_df"
       config_file: "config/coincidence-config.yaml"
       num_process: 1
       RB_assign:
         RB_4: "read"
+
+  - Fkt_5:
+      file_name: "modules/exporters"
+      fkt_name: "drain"
+      num_process: 1
+      RB_assign:
+        RB_2: "read"

@@ -7,6 +7,9 @@ offset: 0 # offset (of the trigger channel) in samples
 window: 125 # window in samples (with rate 4 125 samples = 4us)
 
 
+filename: 'coincidences'
+update_interval: 5
+
 # peak finding configuration
 peak_config1:
   prominence: 200
