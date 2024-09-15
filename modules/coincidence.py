@@ -1,4 +1,4 @@
-from rbTransfer_v2 import rbTransfer_v2 as rbTransfer
+from mimocorb.buffer_control import rbProcess
 import numpy as np
 import analyzers as ana
 
@@ -22,15 +22,11 @@ def coincidence_sorter(source_list=None, sink_list=None, observe_list=None, conf
     else:
         raise ValueError("ERROR! No trigger channel found")
     
-    
-    dtype = sink_list[0]['dtype']
-    #entry_out = np.zeros((1,), dtype=dtype)
-    
     def main(input_data):
         if input_data is None:
             return None
         osc_trig = input_data['trigger_channel']
-        osc_coin = input_data['coincidence_channel']
+        osc_coin = input_data['coincidence']
         peaks_trig, heights_trig, times_trig = ana.pha(osc_trig, peak_config_trig)
         peaks_coin, heights_coin, times_coin = ana.pha(osc_coin, peak_config_coin)
 
@@ -40,9 +36,9 @@ def coincidence_sorter(source_list=None, sink_list=None, observe_list=None, conf
             return [None, True]
         
     
-    transfer = rbTransfer(source_list=source_list, sink_list=sink_list, config_dict=config_dict,
+    process = rbProcess(source_list=source_list, sink_list=sink_list, config_dict=config_dict,
                         ufunc=main, **rb_info)
-    transfer()
+    process()
     
     
 def analyzer(source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
@@ -64,7 +60,7 @@ def analyzer(source_list=None, sink_list=None, observe_list=None, config_dict=No
         if input_data is None:
             return None
         osc_trig = input_data['trigger_channel']
-        osc_coin = input_data['coincidence_channel']
+        osc_coin = input_data['coincidence']
         peaks_trig, heights_trig, times_trig = ana.pha(osc_trig, peak_config_trig)
         peaks_coin, heights_coin, times_coin = ana.pha(osc_coin, peak_config_coin)
 
@@ -76,6 +72,6 @@ def analyzer(source_list=None, sink_list=None, observe_list=None, config_dict=No
         entry_out['deltaT'] = times_coin[0] - times_trig[0]
         return [entry_out]
     
-    transfer = rbTransfer(source_list=source_list, sink_list=sink_list, config_dict=config_dict,
+    process = rbProcess(source_list=source_list, sink_list=sink_list, config_dict=config_dict,
                         ufunc=main, **rb_info)
-    transfer()
+    process()
