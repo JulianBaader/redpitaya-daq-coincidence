@@ -69,6 +69,7 @@ class rb_to_df:
                 df = pd.DataFrame(self.data, columns=self.header)
                 df.to_csv(self.filename, sep="\t", index=False, mode="a", header=False)
                 last_update_time = time.time()
+                self.data = []
         #  END
         print("\n ** rb_toTxtfile: end seen")
         # TODO irgendwie bekomme ich diesen print nicht, das heißt wiederum, dass man kein finales speichern machen kann.
