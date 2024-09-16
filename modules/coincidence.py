@@ -27,14 +27,12 @@ def coincidence_sorter(source_list=None, sink_list=None, observe_list=None, conf
             return None
         osc_trig = input_data['trigger_channel']
         osc_coin = input_data['coincidence']
-        peaks_trig, heights_trig, times_trig = ana.pha(osc_trig, peak_config_trig)
-        peaks_coin, heights_coin, times_coin = ana.pha(osc_coin, peak_config_coin)
-
-        if len(peaks_trig) != 1 or len(peaks_coin) != 1:
+        ana_trig = ana.pha(osc_trig, peak_config_trig)
+        ana_coin = ana.pha(osc_coin, peak_config_coin)
+        if ana_trig is False or ana_coin is False:
             return [True, None]
         else:
             return [None, True]
-        
     
     process = rbProcess(source_list=source_list, sink_list=sink_list, config_dict=config_dict,
                         ufunc=main, **rb_info)
@@ -61,9 +59,17 @@ def analyzer(source_list=None, sink_list=None, observe_list=None, config_dict=No
             return None
         osc_trig = input_data['trigger_channel']
         osc_coin = input_data['coincidence']
-        peaks_trig, heights_trig, times_trig = ana.pha(osc_trig, peak_config_trig)
-        peaks_coin, heights_coin, times_coin = ana.pha(osc_coin, peak_config_coin)
-
+        
+        osc_trig = input_data['trigger_channel']
+        osc_coin = input_data['coincidence']
+        ana_trig = ana.pha(osc_trig, peak_config_trig)
+        ana_coin = ana.pha(osc_coin, peak_config_coin)
+        if ana_trig is False or ana_coin is False:
+            print("This should not happen")
+            return None
+        
+        peaks_trig, heights_trig, times_trig = ana_trig
+        peaks_coin, heights_coin, times_coin = ana_coin
         
         entry_out = np.zeros((1,), dtype=sink_list[0]['dtype'])
         

@@ -30,15 +30,14 @@ def pha_single(source_list=None, sink_list=None, observe_list=None, config_dict=
         if input_data is None:
             return None
         osc = input_data['trigger_channel']
-        peaks, heights, times = ana.pha(osc, peak_config)
+        ana_res = ana.pha(osc, peak_config)
+        if ana_res   is False:
+            return None
+        peaks, heights, times = ana_res
         if len(peaks) == 0:
             return None
-        
-        out = []
-        for i in range(len(peaks)):
-            entry_out[sink_key] = heights[i]
-            out.append(entry_out.copy())
-        return [out]
+        entry_out[sink_key] = heights[0]
+        return [entry_out]
     
     process = rbProcess(source_list=source_list, sink_list=sink_list, config_dict=config_dict,
                         ufunc=main, **rb_info)
