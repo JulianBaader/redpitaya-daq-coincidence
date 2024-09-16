@@ -6,7 +6,7 @@ LEN = 4096
 x = np.arange(LEN)
 
 
-modes = ['quast', 'pavel', 'gauss']
+modes = ['quast', 'pavel', 'gauss', 'constant']
 
 for mode in modes:
     s = np.zeros(LEN, dtype=np.uint32)
@@ -21,6 +21,9 @@ for mode in modes:
         s = norm.pdf(x,LEN/2 , 100)
         s = s / np.max(s) * 1000
         s = s.astype(np.uint32)
+        
+    elif mode == 'constant':
+        s = np.ones(LEN, dtype=np.uint32) * 1000
         
     plt.plot(s)
     plt.title(mode)
