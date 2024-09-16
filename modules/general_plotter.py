@@ -32,10 +32,11 @@ class PlotWindow(QMainWindow):
         # get info from config
         directory_prefix = config_dict['directory_prefix']
         filename = config_dict['filename']
-        codefile = config_dict['codefile'] if 'codefile' in config_dict else {"help": "Here you can write your own code.\nThe variables listed below are already accesible.\nThe code will be executed in every frame of the animation after you hit submit."}
+        codefile = config_dict['codefile']
         title = config_dict['title'] if 'title' in config_dict else 'General Plotter'
         self.set_variables = config_dict['set_variables'] if 'set_variables' in config_dict else {}
         self.datafile = directory_prefix + filename + '.txt'
+        
         with open(codefile) as f:
             self.code_dict = yaml.safe_load(f)
         
@@ -47,7 +48,7 @@ class PlotWindow(QMainWindow):
         # interval between plot updates in ms
         self.minimal_interval = 200
         self.maximal_interval = 10000
-        self.current_interval = 500 # starting value
+        self.current_interval = 5000 # starting value
 
         super().__init__()
         

@@ -9,6 +9,8 @@ window: 125 # window in samples (with rate 4 125 samples = 4us)
 
 filename: 'coincidences'
 update_interval: 5
+codefile: 'plot_codes.yaml'
+title: 'Coincidences'
 
 # peak finding configuration
 peak_config1:

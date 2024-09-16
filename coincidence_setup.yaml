@@ -77,3 +77,16 @@ Functions:
       num_process: 1
       RB_assign:
         RB_2: "read"
+
+  - Fkt_6:
+      file_name: "modules/general_plotter"
+      fkt_name: "general_plotter"
+      config_file: "config/coincidence-config.yaml"
+      num_process: 1
+      
+  - Fkt_7:
+      file_name: "modules/plot_waveform"
+      fkt_name: "plot_waveform"
+      num_process: 1
+      RB_assign:
+        RB_1: "observe"
