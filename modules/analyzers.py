@@ -65,7 +65,7 @@ def pha(osc_data, peak_config):
     starts = []
     for ips in left_ips:
         starts.append(find_first_value(np.gradient(osc_data), int(ips), gradient_min,'left'))
-    # check if start is valid
+    """# check if start is valid
     invalid = []
     for i in range(len(peaks)):
         if starts[i] == -1:
@@ -84,9 +84,12 @@ def pha(osc_data, peak_config):
         return [], [], []
     else:
         heights = osc_data[peaks] - osc_data[starts]
-    
+    """
+    if -1 in starts:
+        return [], [], []
+    heights = osc_data[peaks] - osc_data[starts]
     times = []
-    invalid = []
+    # invalid = []
     # get times
     # as zero crossing
     # for i in range(len(peaks)):
