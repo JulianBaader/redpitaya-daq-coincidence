@@ -130,6 +130,7 @@ def plot(source_list=None, sink_list=None, observe_list=None, config_dict=None, 
             (lines_osc[key],) = ax_osci.plot(x, y, label=key)
         ax_osci.set_xlim(0, channels)
         ax_osci.set_ylim(-osc_range, osc_range)
+        ax_osci.legend()
 
     # initialize spectrum
     if show_osc:
