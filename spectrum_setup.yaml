@@ -3,8 +3,10 @@ RingBuffer:
       number_of_slots: 500
       channel_per_slot: 1000
       data_type:
-        1: ['trigger_channel', "int16"]
-        2: ['coincidence', "int16"]
+        # 1: ['trigger_channel', "int16"]
+        # 2: ['coincidence', "int16"]
+        1: ['coincidence', "int16"]
+        2: ['trigger_channel', "int16"]
   
   - RB_2:
       number_of_slots: 500 # must be high enough to allow for pauses because of writing to file
