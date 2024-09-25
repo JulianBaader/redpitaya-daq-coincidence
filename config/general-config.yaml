@@ -1,5 +1,5 @@
 general:
-  runtime: 600000
+  runtime: -1
   runevents: 100000
 
 drain:
