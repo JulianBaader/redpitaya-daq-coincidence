@@ -27,7 +27,7 @@ rise_time: 50 # rise time in ns
 fall_time: 2 # fall time in us
 pulse_rate: 2000 # pulse rate in Hz
 distribution: 'poisson' # distribution of the pulse rate (poisson or uniform)
-spectrum_file: 'generators/pavel.npy' # file with the spectrum of the signal generator (in csv format) see generators/create_spectrum.py for more information
+spectrum_file: 'generators/single.npy' # file with the spectrum of the signal generator (in csv format) see generators/create_spectrum.py for more information
 start_generator: true # start the signal generator
 
 

@@ -6,15 +6,15 @@ LEN = 4096
 x = np.arange(LEN)
 
 
-modes = ['quast', 'pavel', 'gauss', 'constant']
+modes = ['comb', 'single', 'gauss', 'constant']
 
 for mode in modes:
     s = np.zeros(LEN, dtype=np.uint32)
-    if mode == 'quast':
+    if mode == 'comb':
         for i in range(16):
             s[(i + 1) * 250 - 1] = 1
             
-    elif mode == 'pavel':
+    elif mode == 'single':
         s[2047] = 1
 
     elif mode == 'gauss':
