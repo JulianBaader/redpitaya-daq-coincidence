@@ -5,10 +5,15 @@ Trigger-spectrum: |
   ax.set_title('Trigger Spectrum')
 
 DeltaT-spectrum: |
-  mask_trigger = height_trigger > 0
-  mask_coincidence = height_coincidence > 0
+  min_trigger = 0
+  max_trigger = 4095
 
-  deltaT_valid = deltaT[mask_trigger | mask_coincidence]
+  min_coincidence = 0
+  max_coincidence = 4095
+  mask_trigger = (height_trigger > min_trigger) & (height_trigger < max_trigger)
+  mask_coincidence = (height_coincidence > min_coincidence) & (height_coincidence < max_coincidence)
+
+  deltaT_valid = deltaT[mask_trigger & mask_coincidence]
 
   ax.hist(deltaT_valid, bins=np.linspace(-100, 1000, 1101), histtype='step') # use step as it's way faster
   ax.set_xlabel('DeltaT samples')
