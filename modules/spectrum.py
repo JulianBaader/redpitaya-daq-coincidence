@@ -23,9 +23,6 @@ if oscilloscope is used:
 update_interval_osc -> time between updates of the oscilloscope
 osc_range -> range of the oscilloscope will be -osc_range to osc_range
 """
-MIN = 0
-MAX = 1
-NBINS = 2
 
 from mimocorb.buffer_control import rbExport, rbObserver
 
@@ -33,6 +30,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import os
+
+MIN = 0
+MAX = 1
+NBINS = 2
 
 
 def rb_to_spectrum(source_list=None, sink_list=None, observe_list=None, config_dict=None, **rb_info):
@@ -150,7 +151,7 @@ def plot(source_list=None, sink_list=None, observe_list=None, config_dict=None, 
     plt.legend()
     plt.ion()
     plt.show()
-    
+
     last_update_time = time.time()
     last_update_time_osc = time.time()
 

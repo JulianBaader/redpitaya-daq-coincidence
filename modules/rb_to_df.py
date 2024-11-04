@@ -4,9 +4,10 @@ from mimocorb.buffer_control import rbExport
 from numpy.lib import recfunctions as rfn
 import time
 
+
 class rb_to_df:
     """Save data to a DataFrame which regularly saves to disk."""
-    
+
     def __init__(self, source_list=None, config_dict=None, **rb_info):
         """
         Class to extract data and store in pandas DataFrame
@@ -25,27 +26,24 @@ class rb_to_df:
 
         if len(source_list) != 1:
             raise ValueError("Only one source buffer allowed for rb_to_df!")
-        
+
         source_dict = source_list[0]
         if source_dict['values_per_slot'] != 1:
             raise ValueError("Only one value per slot allowed for rb_to_df!")
-        
-            
+
         self.readData = rbExport(source_list=source_list, config_dict=config_dict, **rb_info)
 
         self.filename = config_dict["directory_prefix"] + "/" + config_dict["filename"] + ".txt"
 
         self.update_interval = config_dict["update_interval"]
-        
+
         self.header = ['counter', 'timestamp', 'deadtime']
         keys = [val[0] for val in source_dict["dtype"]]
         for key in keys:
             self.header.append(key)
-        
 
         # Construct header and corresponding dtype
-        
-        
+
         self.data = []
         df = pd.DataFrame(self.data, columns=self.header)
         df.to_csv(self.filename, sep="\t", index=False)
@@ -55,7 +53,7 @@ class rb_to_df:
 
     def __call__(self):
         # sart reading and save to text file
-        #TODO wär das nicht eigentlich sinnvoll rbExporter zu verwenden? also schöner zumindest. Könnte aber etwas langsamer sein
+        # TODO wär das nicht eigentlich sinnvoll rbExporter zu verwenden? also schöner zumindest. Könnte aber etwas langsamer sein
         last_update_time = time.time()
         while True:
             input_data = next(self.readData())

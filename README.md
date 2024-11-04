@@ -3,10 +3,10 @@ Clone this repo
 
 Clone the mimoCoRB repo (tested version: https://github.com/GuenterQuast/mimoCoRB/tree/af59dc24915f25d95c82944d6aeff0a67fc8080f)
 
-Create a Python11 enviroment (according to Günter newer pyhton should work with mimoCoRB, this wasn't tested).
+Create a Python11 enviroment (according to Günter newer pyhton should work with mimoCoRB, this wasn't tested yet).
 
 Install packages (mimoCoRB, ...) in this enviroment-> ... needs to be tested which packages are required exactly.
-kafe2 and PhyPraKit should suffice
+kafe2 and PhyPraKit should sufficent
 
 To install mimoCoRB browse to the mimoCoRB folder and run
 ```console
