@@ -3,18 +3,17 @@ Clone this repo
 
 Clone the mimoCoRB repo (tested version: https://github.com/GuenterQuast/mimoCoRB/tree/af59dc24915f25d95c82944d6aeff0a67fc8080f)
 
-Create a Python11 enviroment (according to Günter newer pyhton should work with mimoCoRB, this wasn't tested yet).
+Create a Python11 environment (newer python versions should work with mimoCoRB, this wasn't tested yet).
 
-Install packages (mimoCoRB, ...) in this enviroment-> ... needs to be tested which packages are required exactly.
-kafe2 and PhyPraKit should sufficent
+Install packages (mimoCoRB, PhyPraKit, kafe2) in this environment.
 
 To install mimoCoRB browse to the mimoCoRB folder and run
 ```console
 pip install .
 ```
+Update the mcpha-server on the RedPitaya (also available here: https://github.com/JulianBaader/red-pitaya-notes/tree/daq)
 
-
-Connect the RedPitaya to the setup (HPGe to In1 and NaI to In2). Make sure the jumpers on the redpitaya are both set to low voltage.
+Connect the Red Pitaya to the setup (HPGe to In1 and NaI to In2). Ensure the Red Pitaya jumpers are both set to low voltage.
 Set the configuration of the amplifiers according to the Appendix.
 
 
